@@ -133,6 +133,7 @@ export const TasksNotesPanel = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [creatingTask, setCreatingTask] = useState(false);
   const [creatingNote, setCreatingNote] = useState(false);
+  const [activeTab, setActiveTab] = useState("tasks");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -231,7 +232,7 @@ export const TasksNotesPanel = () => {
 
   return (
     <div className="flex flex-col h-full border-l bg-background">
-      <Tabs defaultValue="tasks" className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <div className="p-4 border-b">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="tasks" className="flex items-center gap-2">
