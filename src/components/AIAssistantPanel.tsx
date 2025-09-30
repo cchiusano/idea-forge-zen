@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Send, Sparkles, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Send, Sparkles, Loader2, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { useNotes } from "@/hooks/useNotes";
 
 interface Message {
   id: string;
@@ -25,7 +26,39 @@ export const AIAssistantPanel = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { createNote } = useNotes();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSaveAsNote = async (message: Message) => {
+    setSavingNoteId(message.id);
+    try {
+      createNote({
+        title: `AI Response - ${message.timestamp}`,
+        content: message.content
+      });
+      toast({
+        title: "Success",
+        description: "Response saved as note",
+      });
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save note. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingNoteId(null);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -85,13 +118,29 @@ export const AIAssistantPanel = () => {
         </p>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-4 space-y-4">
           {messages.map((message) => (
             <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] ${message.role === 'assistant' ? 'bg-muted' : 'bg-primary text-primary-foreground'} rounded-lg p-4`}>
+              <div className={`max-w-[80%] ${message.role === 'assistant' ? 'bg-muted' : 'bg-primary text-primary-foreground'} rounded-lg p-4 group relative`}>
+                {message.role === 'assistant' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleSaveAsNote(message)}
+                    disabled={savingNoteId === message.id}
+                    title="Save as note"
+                  >
+                    {savingNoteId === message.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
                 {message.role === 'assistant' ? (
-                  <MarkdownRenderer content={message.content} className="text-sm" />
+                  <MarkdownRenderer content={message.content} className="text-sm pr-8" />
                 ) : (
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 )}
@@ -101,6 +150,7 @@ export const AIAssistantPanel = () => {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
