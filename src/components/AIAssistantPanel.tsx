@@ -42,25 +42,38 @@ export const AIAssistantPanel = () => {
   const handleSaveAsNote = async (message: Message) => {
     setSavingNoteId(message.id);
     try {
-      const title = message.userQuestion 
-        ? `${message.userQuestion} - ${message.timestamp}`
+      // Prefer stored userQuestion, otherwise find the latest user message before this assistant reply
+      let question = message.userQuestion;
+      if (!question) {
+        const idx = messages.findIndex((m) => m.id === message.id);
+        if (idx > 0) {
+          for (let i = idx - 1; i >= 0; i--) {
+            if (messages[i].role === "user") {
+              question = messages[i].content;
+              break;
+            }
+          }
+        }
+      }
+
+      const title = question
+        ? `${question} - ${message.timestamp}`
         : `AI Response - ${message.timestamp}`;
-      
-      console.log('Saving note with title:', title);
-      console.log('User question:', message.userQuestion);
-      
+
+      console.log("Saving note with title:", title);
+      console.log("User question:", question);
+
       createNote({
         title,
-        content: message.content
+        content: message.content,
       });
-      
-      // Don't show toast here - the mutation will handle it
+      // Success toast handled by mutation
     } catch (error) {
-      console.error('Error saving note:', error);
+      console.error("Error saving note:", error);
       toast({
         title: "Error",
         description: "Failed to save note. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSavingNoteId(null);
