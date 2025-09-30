@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -104,7 +104,7 @@ export const SourcesPanel = () => {
                 onClick={() => handleOpenExternal(previewSource)}
                 title="Open in new tab"
               >
-                <Download className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
           </div>
