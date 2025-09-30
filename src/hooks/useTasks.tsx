@@ -19,6 +19,7 @@ export const useTasks = () => {
         const { data, error } = await supabase
           .from("tasks")
           .select("*")
+          .order("order", { ascending: true })
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -140,6 +141,31 @@ export const useTasks = () => {
     },
   });
 
+  const reorderTasks = useMutation({
+    mutationFn: async (tasks: { id: string; order: number }[]) => {
+      const updates = tasks.map(task => 
+        supabase
+          .from("tasks")
+          .update({ order: task.order })
+          .eq("id", task.id)
+      );
+      
+      const results = await Promise.all(updates);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) throw errors[0].error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to reorder tasks: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     tasks,
     isLoading,
@@ -147,5 +173,6 @@ export const useTasks = () => {
     updateTask: updateTask.mutate,
     deleteTask: deleteTask.mutate,
     toggleTask: toggleTask.mutate,
+    reorderTasks: reorderTasks.mutate,
   };
 };

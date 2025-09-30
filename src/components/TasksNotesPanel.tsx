@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, FileEdit, Trash2 } from "lucide-react";
+import { CheckSquare, FileEdit, Trash2, GripVertical } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,18 +11,132 @@ import { TaskEditor } from "./TaskEditor";
 import { NoteEditor } from "./NoteEditor";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Task = Tables<"tasks">;
 type Note = Tables<"notes">;
 
+interface SortableTaskProps {
+  task: Task;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+  onToggle: (task: Task) => void;
+  getPriorityColor: (priority: string) => "default" | "destructive" | "secondary";
+}
+
+const SortableTask = ({ task, onEdit, onDelete, onToggle, getPriorityColor }: SortableTaskProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-4 rounded-lg border bg-card ${task.completed ? 'opacity-60' : ''}`}
+    >
+      <div className="flex items-start gap-3">
+        <div 
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing mt-1"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox 
+            checked={task.completed || false} 
+            onCheckedChange={() => onToggle(task)}
+            className="mt-1" 
+          />
+        </div>
+        <div 
+          className="flex-1 min-w-0 cursor-pointer"
+          onClick={() => onEdit(task)}
+        >
+          <p className={`font-medium text-sm ${task.completed ? 'line-through' : ''}`}>
+            {task.title}
+          </p>
+          {task.description && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {task.description}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {task.priority && (
+              <Badge variant={getPriorityColor(task.priority)}>
+                {task.priority}
+              </Badge>
+            )}
+            {task.due_date && (
+              <Badge variant="outline" className="gap-1">
+                <span className="text-xs">🗓</span>
+                {format(new Date(task.due_date), "MMM dd, yyyy")}
+              </Badge>
+            )}
+            {task.category && (
+              <Badge variant="outline">{task.category}</Badge>
+            )}
+          </div>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task.id);
+          }}
+        >
+          <Trash2 className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const TasksNotesPanel = () => {
-  const { tasks, isLoading: tasksLoading, createTask, updateTask, deleteTask, toggleTask } = useTasks();
+  const { tasks, isLoading: tasksLoading, createTask, updateTask, deleteTask, toggleTask, reorderTasks } = useTasks();
   const { notes, isLoading: notesLoading, createNote, updateNote, deleteNote } = useNotes();
   const [filter, setFilter] = useState<"all" | "active" | "done">("all");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [creatingTask, setCreatingTask] = useState(false);
   const [creatingNote, setCreatingNote] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const filteredTasks = tasks.filter((task) => {
     if (filter === "active") return !task.completed;
@@ -50,6 +164,24 @@ export const TasksNotesPanel = () => {
   const handleNoteCreate = (title: string, content: string) => {
     createNote({ title, content });
     setCreatingNote(false);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = filteredTasks.findIndex((task) => task.id === active.id);
+      const newIndex = filteredTasks.findIndex((task) => task.id === over.id);
+
+      const reorderedTasks = arrayMove(filteredTasks, oldIndex, newIndex);
+      
+      const updates = reorderedTasks.map((task, index) => ({
+        id: task.id,
+        order: index,
+      }));
+
+      reorderTasks(updates);
+    }
   };
 
   // If editing or creating, show editor instead
@@ -159,62 +291,27 @@ export const TasksNotesPanel = () => {
                     : "No tasks yet"}
                 </div>
               ) : (
-                filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`p-4 rounded-lg border bg-card ${task.completed ? 'opacity-60' : ''}`}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={filteredTasks.map(t => t.id)}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <div className="flex items-start gap-3">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Checkbox 
-                          checked={task.completed || false} 
-                          onCheckedChange={() => toggleTask(task)}
-                          className="mt-1" 
-                        />
-                      </div>
-                      <div 
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => setEditingTask(task)}
-                      >
-                        <p className={`font-medium text-sm ${task.completed ? 'line-through' : ''}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {task.description}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {task.priority && (
-                            <Badge variant={getPriorityColor(task.priority)}>
-                              {task.priority}
-                            </Badge>
-                          )}
-                          {task.due_date && (
-                            <Badge variant="outline" className="gap-1">
-                              <span className="text-xs">🗓</span>
-                              {format(new Date(task.due_date), "MMM dd, yyyy")}
-                            </Badge>
-                          )}
-                          {task.category && (
-                            <Badge variant="outline">{task.category}</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteTask(task.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                    {filteredTasks.map((task) => (
+                      <SortableTask
+                        key={task.id}
+                        task={task}
+                        onEdit={setEditingTask}
+                        onDelete={deleteTask}
+                        onToggle={toggleTask}
+                        getPriorityColor={getPriorityColor}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </ScrollArea>
