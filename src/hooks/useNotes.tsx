@@ -11,18 +11,34 @@ export const useNotes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: notes = [], isLoading } = useQuery({
+  const { data: notes = [], isLoading, error: queryError } = useQuery({
     queryKey: ["notes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notes")
-        .select("*")
-        .order("created_at", { ascending: false });
+      console.log("Fetching notes...");
+      try {
+        const { data, error } = await supabase
+          .from("notes")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Note[];
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+        console.log("Notes fetched:", data);
+        return data as Note[];
+      } catch (err) {
+        console.error("Fetch error:", err);
+        throw err;
+      }
     },
+    retry: 3,
+    retryDelay: 1000,
   });
+
+  if (queryError) {
+    console.error("Query error:", queryError);
+  }
 
   const createNote = useMutation({
     mutationFn: async (note: NoteInsert) => {

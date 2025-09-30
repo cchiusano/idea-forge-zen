@@ -11,18 +11,34 @@ export const useTasks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading, error: queryError } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .order("created_at", { ascending: false });
+      console.log("Fetching tasks...");
+      try {
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Task[];
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+        console.log("Tasks fetched:", data);
+        return data as Task[];
+      } catch (err) {
+        console.error("Fetch error:", err);
+        throw err;
+      }
     },
+    retry: 3,
+    retryDelay: 1000,
   });
+
+  if (queryError) {
+    console.error("Query error:", queryError);
+  }
 
   const createTask = useMutation({
     mutationFn: async (task: TaskInsert) => {
