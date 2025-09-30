@@ -45,24 +45,35 @@ export const SourcesPanel = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const getPublicUrl = (filePath: string) => {
-    const { data } = supabase.storage.from('sources').getPublicUrl(filePath);
+  const getFileUrl = (source: Source) => {
+    // Check if it's a Google Drive file
+    if (source.file_path.includes('docs.google.com')) {
+      return source.file_path;
+    }
+    // Otherwise it's from Supabase storage
+    const { data } = supabase.storage.from('sources').getPublicUrl(source.file_path);
     return data.publicUrl;
   };
 
-  const handleDownload = async (source: Source) => {
-    const url = getPublicUrl(source.file_path);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = source.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const isGoogleDriveFile = (source: Source) => {
+    return source.file_path.includes('docs.google.com');
+  };
+
+  const canPreview = (source: Source) => {
+    if (isGoogleDriveFile(source)) {
+      return true; // All Google Drive files can be previewed
+    }
+    return source.type === 'application/pdf';
+  };
+
+  const handleOpenExternal = (source: Source) => {
+    const url = getFileUrl(source);
+    window.open(url, '_blank');
   };
 
   if (previewSource) {
-    const url = getPublicUrl(previewSource.file_path);
-    const isPdf = previewSource.type === 'application/pdf';
+    const url = getFileUrl(previewSource);
+    const canShow = canPreview(previewSource);
     
     return (
       <div className="flex flex-col h-full border-r bg-background">
@@ -74,7 +85,7 @@ export const SourcesPanel = () => {
               </Button>
               <h3 className="font-semibold text-sm truncate">{previewSource.name}</h3>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDownload(previewSource)}>
+            <Button variant="ghost" size="icon" onClick={() => handleOpenExternal(previewSource)}>
               <Download className="h-4 w-4" />
             </Button>
           </div>
@@ -85,12 +96,13 @@ export const SourcesPanel = () => {
           </div>
         </div>
         
-        <div className="flex-1 overflow-hidden">
-          {isPdf ? (
+        <div className="flex-1 overflow-hidden bg-muted/20">
+          {canShow ? (
             <iframe 
               src={url} 
               className="w-full h-full border-0"
               title={previewSource.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             />
           ) : (
             <div className="p-4 flex items-center justify-center h-full">
@@ -99,9 +111,9 @@ export const SourcesPanel = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Preview not available for this file type
                 </p>
-                <Button onClick={() => handleDownload(previewSource)}>
+                <Button onClick={() => handleOpenExternal(previewSource)}>
                   <Download className="h-4 w-4 mr-2" />
-                  Download to view
+                  Open in new tab
                 </Button>
               </div>
             </div>
