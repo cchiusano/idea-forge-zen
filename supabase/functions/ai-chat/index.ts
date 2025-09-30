@@ -22,7 +22,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Search tasks and notes
+    // Search tasks, notes, and sources
     const { data: tasks } = await supabase
       .from('tasks')
       .select('*')
@@ -33,7 +33,51 @@ serve(async (req) => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    console.log("Found tasks:", tasks?.length, "notes:", notes?.length);
+    const { data: sources } = await supabase
+      .from('sources')
+      .select('*')
+      .order('uploaded_at', { ascending: false });
+
+    console.log("Found tasks:", tasks?.length, "notes:", notes?.length, "sources:", sources?.length);
+
+    // Fetch source content for files in storage
+    let sourcesContent = '';
+    if (sources && sources.length > 0) {
+      for (const source of sources.slice(0, 5)) { // Limit to 5 most recent sources
+        try {
+          // Check if it's a Google Drive link or storage file
+          if (source.file_path.startsWith('http')) {
+            // Google Drive file - just list metadata
+            sourcesContent += `\nDocument: ${source.name} (${source.type}) - Google Drive file\n`;
+          } else {
+            // Supabase storage file - try to download if it's text-based
+            const isTextFile = source.type.includes('text') || 
+                              source.type.includes('pdf') ||
+                              source.name.endsWith('.txt') ||
+                              source.name.endsWith('.md');
+            
+            if (isTextFile && source.size < 100000) { // Only small text files < 100KB
+              const { data: fileData, error: downloadError } = await supabase
+                .storage
+                .from('sources')
+                .download(source.file_path);
+              
+              if (!downloadError && fileData) {
+                const text = await fileData.text();
+                sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 2000)}\n`;
+              } else {
+                sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
+              }
+            } else {
+              sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching source:', source.name, err);
+          sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
+        }
+      }
+    }
 
     // Build context for AI
     const tasksContext = tasks?.map(t => 
@@ -44,7 +88,7 @@ serve(async (req) => {
       `Note: ${n.title} - ${n.content?.replace(/<[^>]*>/g, '').substring(0, 200)}`
     ).join('\n') || 'No notes found.';
 
-    const systemPrompt = `You are a helpful AI assistant that helps users manage their tasks and notes. 
+    const systemPrompt = `You are a helpful AI assistant that helps users manage their tasks, notes, and analyze their documents. 
 
 Here is the current data:
 
@@ -54,7 +98,10 @@ ${tasksContext}
 NOTES:
 ${notesContext}
 
-Answer the user's question based on this data. Be concise and helpful. If asked about tasks or notes, reference the actual data above.`;
+SOURCE DOCUMENTS:
+${sourcesContent || 'No source documents uploaded yet.'}
+
+Answer the user's question based on this data. Be concise and helpful. If asked about tasks, notes, or documents, reference the actual data above. For document analysis, provide insights based on the content shown.`;
 
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
