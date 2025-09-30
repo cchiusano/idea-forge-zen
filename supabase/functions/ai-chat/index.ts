@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,27 +101,28 @@ serve(async (req) => {
               if (!downloadError && fileData) {
                 if (isPDF) {
                   try {
-                    // Parse PDF using pdfjs
+                    // Parse PDF using dedicated function
                     const arrayBuffer = await fileData.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
+                    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                     
-                    const loadingTask = pdfjs.getDocument({ data: uint8Array });
-                    const pdf = await loadingTask.promise;
+                    const pdfResponse = await fetch(`${supabaseUrl}/functions/v1/parse-pdf`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseKey}`,
+                      },
+                      body: JSON.stringify({ pdfData: base64 }),
+                    });
                     
-                    let text = '';
-                    const numPages = Math.min(pdf.numPages, 10); // Limit to first 10 pages
-                    
-                    for (let i = 1; i <= numPages; i++) {
-                      const page = await pdf.getPage(i);
-                      const content = await page.getTextContent();
-                      const pageText = content.items.map((item: any) => item.str).join(' ');
-                      text += pageText + '\n';
+                    if (pdfResponse.ok) {
+                      const { text, numPages, extracted } = await pdfResponse.json();
+                      sourcesContent += `\nDocument: ${source.name} (PDF, ${extracted}/${numPages} pages)\nContent:\n${text.substring(0, 4000)}\n`;
+                    } else {
+                      sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text\n`;
                     }
-                    
-                    sourcesContent += `\nDocument: ${source.name} (PDF, ${numPages} pages)\nContent:\n${text.substring(0, 3000)}\n`;
                   } catch (pdfError) {
                     console.error('PDF parse error:', source.name, pdfError);
-                    sourcesContent += `\nDocument: ${source.name} (PDF) - Could not parse content\n`;
+                    sourcesContent += `\nDocument: ${source.name} (PDF) - Error parsing\n`;
                   }
                 } else {
                   // Plain text file
