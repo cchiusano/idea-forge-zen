@@ -17,42 +17,53 @@ serve(async (req) => {
       throw new Error('PDF data is required');
     }
 
-    // Decode base64 PDF
+    // Simple text extraction approach - look for text between stream/endstream markers
     const binaryString = atob(pdfData);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    
+    // Basic PDF text extraction - finds text objects
+    const textPattern = /\(([^)]+)\)/g;
+    const matches = [...binaryString.matchAll(textPattern)];
+    
+    let text = '';
+    for (const match of matches) {
+      if (match[1] && match[1].length > 1) {
+        // Clean up PDF encoding artifacts
+        const cleaned = match[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\(/g, '(')
+          .replace(/\\\)/g, ')')
+          .replace(/\\\\/g, '\\');
+        
+        if (cleaned.trim().length > 0) {
+          text += cleaned + ' ';
+        }
+      }
     }
 
-    // Use pdfjs with proper configuration
-    const pdfjs = await import("https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs");
+    // Also try to extract text between BT and ET markers (text objects)
+    const btPattern = /BT\s+(.*?)\s+ET/gs;
+    const btMatches = [...binaryString.matchAll(btPattern)];
     
-    // Disable worker for server-side rendering
-    pdfjs.GlobalWorkerOptions.workerSrc = '';
-    
-    const loadingTask = pdfjs.getDocument({
-      data: bytes,
-      useWorkerFetch: false,
-      isEvalSupported: false,
-      useSystemFonts: true,
-    });
-    
-    const pdf = await loadingTask.promise;
-    let text = '';
-    const numPages = Math.min(pdf.numPages, 20); // Extract up to 20 pages
-    
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item.str).join(' ');
-      text += `\n--- Page ${i} ---\n${pageText}\n`;
+    for (const match of btMatches) {
+      const textContent = match[1];
+      const innerMatches = [...textContent.matchAll(textPattern)];
+      for (const inner of innerMatches) {
+        if (inner[1] && inner[1].length > 1) {
+          text += inner[1].replace(/\\n/g, '\n').replace(/\\\\/g, '\\') + ' ';
+        }
+      }
     }
+
+    const cleanedText = text.trim();
+    const wordCount = cleanedText.split(/\s+/).length;
 
     return new Response(
       JSON.stringify({ 
-        text: text.trim(), 
-        numPages: pdf.numPages,
-        extracted: numPages 
+        text: cleanedText, 
+        extracted: wordCount > 0,
+        wordCount 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -115,8 +115,12 @@ serve(async (req) => {
                     });
                     
                     if (pdfResponse.ok) {
-                      const { text, numPages, extracted } = await pdfResponse.json();
-                      sourcesContent += `\nDocument: ${source.name} (PDF, ${extracted}/${numPages} pages)\nContent:\n${text.substring(0, 4000)}\n`;
+                      const { text, extracted, wordCount } = await pdfResponse.json();
+                      if (extracted && text) {
+                        sourcesContent += `\nDocument: ${source.name} (PDF, ~${wordCount} words)\nContent:\n${text.substring(0, 4000)}\n`;
+                      } else {
+                        sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text content\n`;
+                      }
                     } else {
                       sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text\n`;
                     }
