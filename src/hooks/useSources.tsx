@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface Source {
@@ -12,6 +13,7 @@ interface Source {
 }
 
 export const useSources = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: sources = [], isLoading } = useQuery({
@@ -29,6 +31,8 @@ export const useSources = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!user) throw new Error("User not authenticated");
+      
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${file.name}`;
@@ -51,6 +55,7 @@ export const useSources = () => {
           type: fileType,
           size: file.size,
           file_path: filePath,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -95,6 +100,8 @@ export const useSources = () => {
 
   const addDriveFileMutation = useMutation({
     mutationFn: async (driveFile: any) => {
+      if (!user) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from("sources")
         .insert({
@@ -102,6 +109,7 @@ export const useSources = () => {
           type: driveFile.mimeType,
           size: driveFile.size || 0,
           file_path: driveFile.webViewLink,
+          user_id: user.id,
         })
         .select()
         .single();

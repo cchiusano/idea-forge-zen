@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Note = Tables<"notes">;
@@ -9,6 +10,7 @@ type NoteUpdate = TablesUpdate<"notes">;
 
 export const useNotes = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: notes = [], isLoading, error: queryError } = useQuery({
@@ -42,9 +44,11 @@ export const useNotes = () => {
 
   const createNote = useMutation({
     mutationFn: async (note: NoteInsert) => {
+      if (!user) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from("notes")
-        .insert(note)
+        .insert({ ...note, user_id: user.id })
         .select()
         .single();
 
