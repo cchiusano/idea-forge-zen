@@ -40,15 +40,51 @@ serve(async (req) => {
 
     console.log("Found tasks:", tasks?.length, "notes:", notes?.length, "sources:", sources?.length);
 
-    // Fetch source content for files in storage
+    // Fetch source content for files in storage and Google Drive
     let sourcesContent = '';
     if (sources && sources.length > 0) {
       for (const source of sources.slice(0, 5)) { // Limit to 5 most recent sources
         try {
           // Check if it's a Google Drive link or storage file
           if (source.file_path.startsWith('http')) {
-            // Google Drive file - just list metadata
-            sourcesContent += `\nDocument: ${source.name} (${source.type}) - Google Drive file\n`;
+            // Google Drive file - extract file ID and fetch content
+            const urlMatch = source.file_path.match(/[-\w]{25,}/);
+            if (urlMatch) {
+              const fileId = urlMatch[0];
+              
+              // Check if it's a Google Workspace file
+              const isGoogleDoc = source.type === 'application/vnd.google-apps.document';
+              const isGoogleSheet = source.type === 'application/vnd.google-apps.spreadsheet';
+              const isGoogleSlide = source.type === 'application/vnd.google-apps.presentation';
+              
+              if (isGoogleDoc || isGoogleSheet || isGoogleSlide) {
+                try {
+                  const contentResponse = await fetch(`${supabaseUrl}/functions/v1/google-drive-content`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${supabaseKey}`,
+                    },
+                    body: JSON.stringify({ fileId, mimeType: source.type }),
+                  });
+                  
+                  if (contentResponse.ok) {
+                    const { content } = await contentResponse.json();
+                    const truncatedContent = content.substring(0, 3000);
+                    sourcesContent += `\nDocument: ${source.name} (Google ${isGoogleDoc ? 'Doc' : isGoogleSheet ? 'Sheet' : 'Slides'})\nContent:\n${truncatedContent}\n`;
+                  } else {
+                    sourcesContent += `\nDocument: ${source.name} (${source.type}) - Could not fetch content\n`;
+                  }
+                } catch (fetchErr) {
+                  console.error('Error fetching Google Drive content:', source.name, fetchErr);
+                  sourcesContent += `\nDocument: ${source.name} (${source.type}) - Error fetching content\n`;
+                }
+              } else {
+                sourcesContent += `\nDocument: ${source.name} (${source.type}) - Google Drive file\n`;
+              }
+            } else {
+              sourcesContent += `\nDocument: ${source.name} - Google Drive file\n`;
+            }
           } else {
             // Supabase storage file - try to download if it's text-based
             const isTextFile = source.type.includes('text') || 

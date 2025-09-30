@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.google-drive-files]
 verify_jwt = false
+
+[functions.google-drive-content]
+verify_jwt = false
