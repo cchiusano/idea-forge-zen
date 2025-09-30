@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { FileText, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ export const GoogleDriveDialog = ({ open, onOpenChange, onFileSelect }: GoogleDr
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [pastedLink, setPastedLink] = useState("");
 
   const checkConnection = async () => {
     try {
@@ -133,6 +135,49 @@ export const GoogleDriveDialog = ({ open, onOpenChange, onFileSelect }: GoogleDr
     }, 500);
   };
 
+  const handlePastedLink = async () => {
+    if (!pastedLink.trim()) return;
+    
+    try {
+      // Extract file ID from various Google Drive URL formats
+      const fileIdMatch = pastedLink.match(/[-\w]{25,}/);
+      if (!fileIdMatch) {
+        toast.error('Invalid Google Drive link');
+        return;
+      }
+      
+      const fileId = fileIdMatch[0];
+      
+      // Check if file is already in the list
+      const existingFile = files.find(f => f.id === fileId);
+      if (existingFile) {
+        handleFileSelect(existingFile);
+        setPastedLink("");
+        return;
+      }
+      
+      // Fetch file metadata from Google Drive
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke('google-drive-files', {
+        body: { fileId }
+      });
+      
+      if (error) throw error;
+      
+      if (data.file) {
+        handleFileSelect(data.file);
+        setPastedLink("");
+      } else {
+        toast.error('File not found or not accessible');
+      }
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      toast.error('Failed to fetch file from link');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'Unknown size';
     if (bytes < 1024) return bytes + " B";
@@ -166,6 +211,27 @@ export const GoogleDriveDialog = ({ open, onOpenChange, onFileSelect }: GoogleDr
           </div>
         ) : (
           <>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Paste Google Drive Link</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={pastedLink}
+                    onChange={(e) => setPastedLink(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handlePastedLink()}
+                  />
+                  <Button onClick={handlePastedLink} disabled={!pastedLink.trim() || isLoading}>
+                    Add
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Or browse files below
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-muted-foreground">
                 {files.length} files available

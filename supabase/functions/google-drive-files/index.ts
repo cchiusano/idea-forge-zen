@@ -18,6 +18,10 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
 
     const supabase = createClient(supabaseUrl!, supabaseKey!);
+    
+    // Check if this is a request for a specific file
+    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+    const requestedFileId = body.fileId;
 
     // Get stored tokens
     const { data: tokenData, error: tokenError } = await supabase
@@ -71,7 +75,38 @@ serve(async (req) => {
     }
 
     // Fetch files from Google Drive
-    const driveResponse = await fetch(
+    let driveResponse;
+    
+    if (requestedFileId) {
+      // Fetch specific file
+      driveResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${requestedFileId}?` +
+        'fields=id,name,mimeType,size,modifiedTime,webViewLink,iconLink',
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+      
+      if (!driveResponse.ok) {
+        const error = await driveResponse.text();
+        console.error('Drive API error:', error);
+        return new Response(
+          JSON.stringify({ file: null, error: 'File not found or not accessible' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const file = await driveResponse.json();
+      return new Response(
+        JSON.stringify({ file }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Fetch all files
+    driveResponse = await fetch(
       'https://www.googleapis.com/drive/v3/files?' +
       'pageSize=100&' +
       'fields=files(id,name,mimeType,size,modifiedTime,webViewLink,iconLink)',
