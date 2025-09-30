@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 interface Message {
   id: string;
@@ -89,7 +90,11 @@ export const AIAssistantPanel = () => {
           {messages.map((message) => (
             <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] ${message.role === 'assistant' ? 'bg-muted' : 'bg-primary text-primary-foreground'} rounded-lg p-4`}>
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                {message.role === 'assistant' ? (
+                  <MarkdownRenderer content={message.content} className="text-sm" />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                )}
                 <p className={`text-xs mt-2 ${message.role === 'assistant' ? 'text-muted-foreground' : 'text-primary-foreground/70'}`}>
                   {message.timestamp}
                 </p>

@@ -8,6 +8,7 @@ import { GoogleDriveDialog } from "./GoogleDriveDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 interface Source {
   id: string;
@@ -309,9 +310,7 @@ export const SourcesPanel = () => {
           <DialogHeader>
             <DialogTitle>Document Summary</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <p className="whitespace-pre-wrap">{currentSummary}</p>
-          </div>
+          <MarkdownRenderer content={currentSummary} />
         </DialogContent>
       </Dialog>
     </div>
