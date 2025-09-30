@@ -11,11 +11,12 @@ type Task = Tables<"tasks">;
 
 interface TaskEditorProps {
   task: Task | null;
-  onSave: (id: string, updates: Partial<Task>) => void;
+  onSave?: (id: string, updates: Partial<Task>) => void;
+  onCreate?: (taskData: Omit<Task, "id" | "created_at" | "updated_at" | "completed">) => void;
   onCancel: () => void;
 }
 
-export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
+export const TaskEditor = ({ task, onSave, onCreate, onCancel }: TaskEditorProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
@@ -32,18 +33,29 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
     }
   }, [task]);
 
-  const handleSave = () => {
-    if (!task) return;
-    onSave(task.id, {
-      title,
-      description: description || null,
-      priority,
-      category: category || null,
-      due_date: dueDate || null,
-    });
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    
+    if (task && onSave) {
+      // Edit mode
+      onSave(task.id, {
+        title,
+        description: description || null,
+        priority,
+        category: category || null,
+        due_date: dueDate || null,
+      });
+    } else if (onCreate) {
+      // Create mode
+      onCreate({
+        title,
+        description: description || null,
+        priority,
+        category: category || null,
+        due_date: dueDate || null,
+      } as any);
+    }
   };
-
-  if (!task) return null;
 
   return (
     <div className="flex flex-col h-full">
@@ -52,7 +64,7 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="font-semibold">Edit Task</h2>
+          <h2 className="font-semibold">{task ? 'Edit Task' : 'New Task'}</h2>
         </div>
       </div>
 
@@ -110,8 +122,8 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
       </div>
 
       <div className="p-4 border-t flex gap-2">
-        <Button onClick={handleSave} className="flex-1">
-          Save Changes
+        <Button onClick={handleSubmit} className="flex-1" disabled={!title.trim()}>
+          {task ? 'Save Changes' : 'Create Task'}
         </Button>
         <Button onClick={onCancel} variant="outline">
           Cancel

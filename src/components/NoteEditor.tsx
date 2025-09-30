@@ -10,11 +10,12 @@ type Note = Tables<"notes">;
 
 interface NoteEditorProps {
   note: Note | null;
-  onSave: (id: string, title: string, content: string) => void;
+  onSave?: (id: string, title: string, content: string) => void;
+  onCreate?: (title: string, content: string) => void;
   onCancel: () => void;
 }
 
-export const NoteEditor = ({ note, onSave, onCancel }: NoteEditorProps) => {
+export const NoteEditor = ({ note, onSave, onCreate, onCancel }: NoteEditorProps) => {
   const editor = useEditor({
     extensions: [StarterKit],
     content: note?.content || "",
@@ -31,14 +32,23 @@ export const NoteEditor = ({ note, onSave, onCancel }: NoteEditorProps) => {
     }
   }, [note?.id, editor]);
 
-  const handleSave = () => {
-    if (!note || !editor) return;
+  const handleSubmit = () => {
+    if (!editor) return;
     const title = (document.getElementById("note-title") as HTMLInputElement)?.value;
+    if (!title?.trim()) return;
+    
     const content = editor.getHTML();
-    onSave(note.id, title, content);
+    
+    if (note && onSave) {
+      // Edit mode
+      onSave(note.id, title, content);
+    } else if (onCreate) {
+      // Create mode
+      onCreate(title, content);
+    }
   };
 
-  if (!note) return null;
+  if (!note && !onCreate) return null;
 
   return (
     <div className="flex flex-col h-full">
@@ -47,11 +57,11 @@ export const NoteEditor = ({ note, onSave, onCancel }: NoteEditorProps) => {
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="font-semibold">Edit Note</h2>
+          <h2 className="font-semibold">{note ? 'Edit Note' : 'New Note'}</h2>
         </div>
         <Input
           id="note-title"
-          defaultValue={note.title}
+          defaultValue={note?.title || ""}
           placeholder="Note title"
           className="text-lg font-medium"
         />
@@ -98,8 +108,8 @@ export const NoteEditor = ({ note, onSave, onCancel }: NoteEditorProps) => {
       </div>
 
       <div className="p-4 flex gap-2">
-        <Button onClick={handleSave} className="flex-1">
-          Save Changes
+        <Button onClick={handleSubmit} className="flex-1">
+          {note ? 'Save Changes' : 'Create Note'}
         </Button>
         <Button onClick={onCancel} variant="outline">
           Cancel

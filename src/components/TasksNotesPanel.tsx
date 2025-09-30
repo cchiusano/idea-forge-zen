@@ -7,8 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useTasks } from "@/hooks/useTasks";
 import { useNotes } from "@/hooks/useNotes";
-import { TaskDialog } from "./TaskDialog";
-import { NoteDialog } from "./NoteDialog";
 import { TaskEditor } from "./TaskEditor";
 import { NoteEditor } from "./NoteEditor";
 import { format } from "date-fns";
@@ -23,6 +21,8 @@ export const TasksNotesPanel = () => {
   const [filter, setFilter] = useState<"all" | "active" | "done">("all");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [creatingNote, setCreatingNote] = useState(false);
 
   const filteredTasks = tasks.filter((task) => {
     if (filter === "active") return !task.completed;
@@ -37,18 +37,48 @@ export const TasksNotesPanel = () => {
     setEditingTask(null);
   };
 
+  const handleTaskCreate = (taskData: Omit<Task, "id" | "created_at" | "updated_at" | "completed">) => {
+    createTask(taskData);
+    setCreatingTask(false);
+  };
+
   const handleNoteSave = (id: string, title: string, content: string) => {
     updateNote({ id, title, content });
     setEditingNote(null);
   };
 
-  // If editing, show editor instead
-  if (editingTask) {
-    return <TaskEditor task={editingTask} onSave={handleTaskSave} onCancel={() => setEditingTask(null)} />;
+  const handleNoteCreate = (title: string, content: string) => {
+    createNote({ title, content });
+    setCreatingNote(false);
+  };
+
+  // If editing or creating, show editor instead
+  if (editingTask || creatingTask) {
+    return (
+      <TaskEditor 
+        task={editingTask} 
+        onSave={editingTask ? handleTaskSave : undefined}
+        onCreate={creatingTask ? handleTaskCreate : undefined}
+        onCancel={() => {
+          setEditingTask(null);
+          setCreatingTask(false);
+        }} 
+      />
+    );
   }
 
-  if (editingNote) {
-    return <NoteEditor note={editingNote} onSave={handleNoteSave} onCancel={() => setEditingNote(null)} />;
+  if (editingNote || creatingNote) {
+    return (
+      <NoteEditor 
+        note={editingNote} 
+        onSave={editingNote ? handleNoteSave : undefined}
+        onCreate={creatingNote ? handleNoteCreate : undefined}
+        onCancel={() => {
+          setEditingNote(null);
+          setCreatingNote(false);
+        }} 
+      />
+    );
   }
 
   const getPriorityColor = (priority: string) => {
@@ -190,7 +220,9 @@ export const TasksNotesPanel = () => {
           </ScrollArea>
 
           <div className="p-4 border-t">
-            <TaskDialog onCreateTask={createTask} />
+            <Button onClick={() => setCreatingTask(true)} className="w-full">
+              + New Task
+            </Button>
           </div>
         </TabsContent>
 
@@ -255,7 +287,9 @@ export const TasksNotesPanel = () => {
           </ScrollArea>
 
           <div className="p-4 border-t">
-            <NoteDialog onCreateNote={createNote} />
+            <Button onClick={() => setCreatingNote(true)} className="w-full">
+              + New Note
+            </Button>
           </div>
         </TabsContent>
       </Tabs>
