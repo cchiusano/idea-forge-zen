@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download } from "lucide-react";
+import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +21,7 @@ export const SourcesPanel = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [driveDialogOpen, setDriveDialogOpen] = useState(false);
   const [previewSource, setPreviewSource] = useState<Source | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { sources, isLoading, uploadFile, deleteSource, isUploading, addDriveFile } = useSources();
 
   const handleUploadClick = () => {
@@ -76,18 +77,36 @@ export const SourcesPanel = () => {
     const canShow = canPreview(previewSource);
     
     return (
-      <div className="flex flex-col h-full border-r bg-background">
+      <div className={`flex flex-col h-full border-r bg-background ${isExpanded ? 'fixed inset-0 z-50' : ''}`}>
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setPreviewSource(null)}>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Button variant="ghost" size="icon" onClick={() => {
+                setPreviewSource(null);
+                setIsExpanded(false);
+              }}>
                 <X className="h-4 w-4" />
               </Button>
               <h3 className="font-semibold text-sm truncate">{previewSource.name}</h3>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleOpenExternal(previewSource)}>
-              <Download className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsExpanded(!isExpanded)}
+                title={isExpanded ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleOpenExternal(previewSource)}
+                title="Open in new tab"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>{previewSource.type}</span>
