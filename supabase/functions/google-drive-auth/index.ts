@@ -89,12 +89,24 @@ serve(async (req) => {
         return new Response(html, { status: 500, headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
       }
 
-      const successHtml = `<!doctype html><html><body>
+      const successHtml = `<!doctype html><html><head><title>Connected</title></head><body>
 <script>
-  try { if (window.opener) { window.opener.postMessage({ type: 'drive-auth', status: 'success' }, '*'); } } catch (e) {}
-  window.close();
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'drive-auth', status: 'success' }, '*');
+    }
+  } catch (e) {
+    console.error('postMessage failed:', e);
+  }
+  setTimeout(() => {
+    window.close();
+    // Fallback if close doesn't work
+    setTimeout(() => {
+      document.body.innerHTML = '<p style="font-family: sans-serif; padding: 20px; text-align: center;">✓ Connected successfully!<br><br>You can close this window.</p>';
+    }, 100);
+  }, 500);
 </script>
-<p>Connected. You can close this window.</p>
+<p style="font-family: sans-serif; padding: 20px; text-align: center;">✓ Connecting...</p>
 </body></html>`;
       return new Response(successHtml, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
     }
