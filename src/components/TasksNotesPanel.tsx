@@ -9,6 +9,8 @@ import { useTasks } from "@/hooks/useTasks";
 import { useNotes } from "@/hooks/useNotes";
 import { TaskDialog } from "./TaskDialog";
 import { NoteDialog } from "./NoteDialog";
+import { TaskEditor } from "./TaskEditor";
+import { NoteEditor } from "./NoteEditor";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -19,6 +21,8 @@ export const TasksNotesPanel = () => {
   const { tasks, isLoading: tasksLoading, createTask, updateTask, deleteTask, toggleTask } = useTasks();
   const { notes, isLoading: notesLoading, createNote, updateNote, deleteNote } = useNotes();
   const [filter, setFilter] = useState<"all" | "active" | "done">("all");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   const filteredTasks = tasks.filter((task) => {
     if (filter === "active") return !task.completed;
@@ -27,6 +31,25 @@ export const TasksNotesPanel = () => {
   });
 
   const completedCount = tasks.filter((t) => t.completed).length;
+
+  const handleTaskSave = (id: string, updates: Partial<Task>) => {
+    updateTask({ id, ...updates });
+    setEditingTask(null);
+  };
+
+  const handleNoteSave = (id: string, title: string, content: string) => {
+    updateNote({ id, title, content });
+    setEditingNote(null);
+  };
+
+  // If editing, show editor instead
+  if (editingTask) {
+    return <TaskEditor task={editingTask} onSave={handleTaskSave} onCancel={() => setEditingTask(null)} />;
+  }
+
+  if (editingNote) {
+    return <NoteEditor note={editingNote} onSave={handleNoteSave} onCancel={() => setEditingNote(null)} />;
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -112,12 +135,17 @@ export const TasksNotesPanel = () => {
                     className={`p-4 rounded-lg border bg-card ${task.completed ? 'opacity-60' : ''}`}
                   >
                     <div className="flex items-start gap-3">
-                      <Checkbox 
-                        checked={task.completed || false} 
-                        onCheckedChange={() => toggleTask(task)}
-                        className="mt-1" 
-                      />
-                      <div className="flex-1 min-w-0">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox 
+                          checked={task.completed || false} 
+                          onCheckedChange={() => toggleTask(task)}
+                          className="mt-1" 
+                        />
+                      </div>
+                      <div 
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => setEditingTask(task)}
+                      >
                         <p className={`font-medium text-sm ${task.completed ? 'line-through' : ''}`}>
                           {task.title}
                         </p>
@@ -147,7 +175,10 @@ export const TasksNotesPanel = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => deleteTask(task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTask(task.id);
+                        }}
                       >
                         <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
@@ -188,14 +219,16 @@ export const TasksNotesPanel = () => {
                   {notes.map((note) => (
                     <div
                       key={note.id}
-                      className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                      className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group cursor-pointer"
+                      onClick={() => setEditingNote(note)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-sm">{note.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {note.content}
-                          </p>
+                          <div 
+                            className="text-sm text-muted-foreground mt-1 line-clamp-2 prose prose-sm"
+                            dangerouslySetInnerHTML={{ __html: note.content || "" }}
+                          />
                           {note.created_at && (
                             <p className="text-xs text-muted-foreground mt-2">
                               {format(new Date(note.created_at), "MMM dd, yyyy")}
@@ -206,7 +239,10 @@ export const TasksNotesPanel = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => deleteNote(note.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNote(note.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4 text-muted-foreground" />
                         </Button>

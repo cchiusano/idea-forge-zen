@@ -103,3 +103,49 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  @apply focus:outline-none;
+}
+
+.ProseMirror p {
+  @apply mb-2;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-6 mb-2;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+.ProseMirror li {
+  @apply mb-1;
+}
+
+.ProseMirror strong {
+  @apply font-bold;
+}
+
+.ProseMirror em {
+  @apply italic;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold mb-2;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold mb-2;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-bold mb-2;
+}
