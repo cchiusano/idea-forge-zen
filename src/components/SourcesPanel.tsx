@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink } from "lucide-react";
+import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSources } from "@/hooks/useSources";
 import { GoogleDriveDialog } from "./GoogleDriveDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface Source {
   id: string;
@@ -22,6 +24,9 @@ export const SourcesPanel = () => {
   const [driveDialogOpen, setDriveDialogOpen] = useState(false);
   const [previewSource, setPreviewSource] = useState<Source | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [currentSummary, setCurrentSummary] = useState("");
+  const [summarizingSource, setSummarizingSource] = useState<string | null>(null);
   const { sources, isLoading, uploadFile, deleteSource, isUploading, addDriveFile } = useSources();
 
   const handleUploadClick = () => {
@@ -70,6 +75,25 @@ export const SourcesPanel = () => {
   const handleOpenExternal = (source: Source) => {
     const url = getFileUrl(source);
     window.open(url, '_blank');
+  };
+
+  const handleSummarize = async (source: Source) => {
+    setSummarizingSource(source.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('summarize-document', {
+        body: { source }
+      });
+
+      if (error) throw error;
+
+      setCurrentSummary(data.summary);
+      setSummaryDialogOpen(true);
+    } catch (error) {
+      console.error('Error summarizing document:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to summarize document');
+    } finally {
+      setSummarizingSource(null);
+    }
   };
 
   if (previewSource) {
@@ -198,6 +222,23 @@ export const SourcesPanel = () => {
                   className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleSummarize(source);
+                  }}
+                  disabled={summarizingSource === source.id}
+                  title="Summarize document"
+                >
+                  {summarizingSource === source.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setPreviewSource(source);
                   }}
                 >
@@ -262,6 +303,17 @@ export const SourcesPanel = () => {
         onOpenChange={setDriveDialogOpen}
         onFileSelect={addDriveFile}
       />
+
+      <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Document Summary</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <p className="whitespace-pre-wrap">{currentSummary}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
