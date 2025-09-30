@@ -21,13 +21,91 @@ serve(async (req) => {
       throw new Error('Google OAuth credentials not configured');
     }
 
-    const { code, action } = await req.json();
+    const url = new URL(req.url);
 
-    // Initialize auth flow
+    // Handle Google OAuth callback (GET with ?code=...)
+    if (req.method === 'GET') {
+      const code = url.searchParams.get('code');
+      const errorParam = url.searchParams.get('error');
+
+      if (errorParam) {
+        const html = `<!doctype html><html><body>
+<script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: '${errorParam}'}, '*');} window.close();</script>
+<p>Authorization cancelled. You can close this window.</p>
+</body></html>`;
+        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+      }
+
+      if (!code) {
+        const html = `<!doctype html><html><body>
+<script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'missing_code'}, '*');} window.close();</script>
+<p>Missing authorization code.</p>
+</body></html>`;
+        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+      }
+
+      const redirectUri = `${supabaseUrl}/functions/v1/google-drive-auth`;
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errTxt = await tokenResponse.text();
+        console.error('Token exchange failed:', errTxt);
+        const html = `<!doctype html><html><body>
+<script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'token_exchange_failed'}, '*');} window.close();</script>
+<p>Token exchange failed.</p>
+</body></html>`;
+        return new Response(html, { status: 400, headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+      }
+
+      const tokens = await tokenResponse.json();
+
+      const supabase = createClient(supabaseUrl!, supabaseKey!);
+      const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+
+      const { error: dbError } = await supabase
+        .from('google_drive_tokens')
+        .insert({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token ?? null,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        const html = `<!doctype html><html><body>
+<script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'db_error'}, '*');} window.close();</script>
+<p>Failed to store tokens.</p>
+</body></html>`;
+        return new Response(html, { status: 500, headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+      }
+
+      const successHtml = `<!doctype html><html><body>
+<script>
+  try { if (window.opener) { window.opener.postMessage({ type: 'drive-auth', status: 'success' }, '*'); } } catch (e) {}
+  window.close();
+</script>
+<p>Connected. You can close this window.</p>
+</body></html>`;
+      return new Response(successHtml, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+    }
+
+    // Handle POST actions from app (init auth or manual callback)
+    const { code, action } = await req.json().catch(() => ({ }));
+
     if (action === 'init') {
       const redirectUri = `${supabaseUrl}/functions/v1/google-drive-auth`;
       const scope = 'https://www.googleapis.com/auth/drive.readonly';
-      
+
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
@@ -42,10 +120,8 @@ serve(async (req) => {
       );
     }
 
-    // Exchange code for tokens
     if (action === 'callback' && code) {
       const redirectUri = `${supabaseUrl}/functions/v1/google-drive-auth`;
-      
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -65,20 +141,14 @@ serve(async (req) => {
       }
 
       const tokens = await tokenResponse.json();
-      
-      // Store tokens in database
       const supabase = createClient(supabaseUrl!, supabaseKey!);
-      
       const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
-      
-      // Delete existing tokens and insert new ones
-      await supabase.from('google_drive_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      
+
       const { error: dbError } = await supabase
         .from('google_drive_tokens')
         .insert({
           access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
+          refresh_token: tokens.refresh_token ?? null,
           expires_at: expiresAt.toISOString(),
         });
 

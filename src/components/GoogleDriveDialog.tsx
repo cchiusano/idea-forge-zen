@@ -52,6 +52,24 @@ export const GoogleDriveDialog = ({ open, onOpenChange, onFileSelect }: GoogleDr
     }
   }, [open]);
 
+  useEffect(() => {
+    const handler = async (ev: MessageEvent) => {
+      const data = ev.data;
+      if (data && data.type === 'drive-auth') {
+        if (data.status === 'success') {
+          setIsConnecting(false);
+          await checkConnection();
+          toast.success('Google Drive connected');
+        } else {
+          setIsConnecting(false);
+          toast.error('Google Drive connection failed');
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
