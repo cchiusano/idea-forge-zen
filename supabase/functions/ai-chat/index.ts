@@ -43,7 +43,7 @@ serve(async (req) => {
     // Fetch source content for files in storage and Google Drive
     let sourcesContent = '';
     if (sources && sources.length > 0) {
-      for (const source of sources.slice(0, 5)) { // Limit to 5 most recent sources
+      for (const source of sources.slice(0, 10)) { // Increased to 10 most recent sources
         try {
           // Check if it's a Google Drive link or storage file
           if (source.file_path.startsWith('http')) {
@@ -70,7 +70,7 @@ serve(async (req) => {
                   
                   if (contentResponse.ok) {
                     const { content } = await contentResponse.json();
-                    const truncatedContent = content.substring(0, 3000);
+                    const truncatedContent = content.substring(0, 8000); // Increased to 8000 chars
                     sourcesContent += `\nDocument: ${source.name} (Google ${isGoogleDoc ? 'Doc' : isGoogleSheet ? 'Sheet' : 'Slides'})\nContent:\n${truncatedContent}\n`;
                   } else {
                     sourcesContent += `\nDocument: ${source.name} (${source.type}) - Could not fetch content\n`;
@@ -118,7 +118,7 @@ serve(async (req) => {
                       const { text, extracted, wordCount, method, needsOCR } = await pdfResponse.json();
                       if (extracted && text) {
                         const label = needsOCR ? 'partially readable' : 'text-based';
-                        sourcesContent += `\nDocument: ${source.name} (PDF, ${label}, ~${wordCount} words)\nContent:\n${text.substring(0, 4000)}\n`;
+                        sourcesContent += `\nDocument: ${source.name} (PDF, ${label}, ~${wordCount} words)\nContent:\n${text.substring(0, 10000)}\n`; // Increased to 10000 chars
                       } else if (needsOCR) {
                         sourcesContent += `\nDocument: ${source.name} (PDF, image-based/scanned) - Text extraction not available. This PDF appears to be a scanned document or image.\n`;
                       } else {
@@ -134,7 +134,7 @@ serve(async (req) => {
                 } else {
                   // Plain text file
                   const text = await fileData.text();
-                  sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 3000)}\n`;
+                  sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 8000)}\n`; // Increased to 8000 chars
                 }
               } else {
                 sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
