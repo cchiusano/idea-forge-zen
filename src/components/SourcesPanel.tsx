@@ -1,41 +1,30 @@
-import { useState } from "react";
-import { Search, Upload, FileText, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Search, Upload, FileText, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface Source {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploaded_at: string;
-}
+import { useSources } from "@/hooks/useSources";
 
 export const SourcesPanel = () => {
-  const [sources] = useState<Source[]>([
-    {
-      id: "1",
-      name: "Project Requirements.pdf",
-      type: "doc",
-      size: 2300000,
-      uploaded_at: "2024-01-16"
-    },
-    {
-      id: "2",
-      name: "Data Analysis.xlsx",
-      type: "spreadsheet",
-      size: 890000,
-      uploaded_at: "2024-01-14"
-    },
-    {
-      id: "3",
-      name: "Presentation Draft.pptx",
-      type: "slide",
-      size: 5100000,
-      uploaded_at: "2024-01-13"
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { sources, isLoading, uploadFile, deleteSource, isUploading } = useSources();
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadFile(file);
+      event.target.value = ""; // Reset input
     }
-  ]);
+  };
+
+  const filteredSources = sources.filter(source =>
+    source.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
@@ -55,13 +44,24 @@ export const SourcesPanel = () => {
           <Input
             placeholder="Search sources..."
             className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
-          {sources.map((source) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredSources.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              {searchQuery ? "No sources found" : "No sources uploaded yet"}
+            </div>
+          ) : (
+            filteredSources.map((source) => (
             <div
               key={source.id}
               className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
@@ -74,24 +74,49 @@ export const SourcesPanel = () => {
                   <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">{formatFileSize(source.size)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{source.uploaded_at}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {new Date(source.uploaded_at).toLocaleDateString()}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                onClick={() => deleteSource(source)}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </ScrollArea>
 
       <div className="p-4 border-t">
-        <Button className="w-full" variant="outline">
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Document
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+        />
+        <Button 
+          className="w-full" 
+          variant="outline"
+          onClick={handleUploadClick}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Document
+            </>
+          )}
         </Button>
       </div>
     </div>
