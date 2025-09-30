@@ -115,9 +115,12 @@ serve(async (req) => {
                     });
                     
                     if (pdfResponse.ok) {
-                      const { text, extracted, wordCount } = await pdfResponse.json();
+                      const { text, extracted, wordCount, method, needsOCR } = await pdfResponse.json();
                       if (extracted && text) {
-                        sourcesContent += `\nDocument: ${source.name} (PDF, ~${wordCount} words)\nContent:\n${text.substring(0, 4000)}\n`;
+                        const label = needsOCR ? 'partially readable' : 'text-based';
+                        sourcesContent += `\nDocument: ${source.name} (PDF, ${label}, ~${wordCount} words)\nContent:\n${text.substring(0, 4000)}\n`;
+                      } else if (needsOCR) {
+                        sourcesContent += `\nDocument: ${source.name} (PDF, image-based/scanned) - Text extraction not available. This PDF appears to be a scanned document or image.\n`;
                       } else {
                         sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text content\n`;
                       }
