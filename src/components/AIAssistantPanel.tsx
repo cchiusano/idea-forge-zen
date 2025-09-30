@@ -46,14 +46,15 @@ export const AIAssistantPanel = () => {
         ? `${message.userQuestion} - ${message.timestamp}`
         : `AI Response - ${message.timestamp}`;
       
+      console.log('Saving note with title:', title);
+      console.log('User question:', message.userQuestion);
+      
       createNote({
         title,
         content: message.content
       });
-      toast({
-        title: "Success",
-        description: "Response saved as note",
-      });
+      
+      // Don't show toast here - the mutation will handle it
     } catch (error) {
       console.error('Error saving note:', error);
       toast({

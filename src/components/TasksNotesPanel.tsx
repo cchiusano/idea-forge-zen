@@ -9,6 +9,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useNotes } from "@/hooks/useNotes";
 import { TaskEditor } from "./TaskEditor";
 import { NoteEditor } from "./NoteEditor";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import {
@@ -353,11 +354,10 @@ export const TasksNotesPanel = () => {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm">{note.title}</h3>
-                          <div 
-                            className="text-sm text-muted-foreground mt-1 line-clamp-2 prose prose-sm"
-                            dangerouslySetInnerHTML={{ __html: note.content || "" }}
-                          />
+                          <h3 className="font-medium text-sm mb-1">{note.title}</h3>
+                          <div className="text-sm text-muted-foreground line-clamp-2">
+                            <MarkdownRenderer content={note.content || ""} />
+                          </div>
                           {note.created_at && (
                             <p className="text-xs text-muted-foreground mt-2">
                               {format(new Date(note.created_at), "MMM dd, yyyy")}
