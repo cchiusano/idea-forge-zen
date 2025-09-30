@@ -3,7 +3,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bold, Italic, List, ListOrdered, ArrowLeft } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, ArrowLeft, Heading1, Heading2, Pilcrow } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Note = Tables<"notes">;
@@ -34,10 +34,15 @@ export const NoteEditor = ({ note, onSave, onCreate, onCancel }: NoteEditorProps
 
   const handleSubmit = () => {
     if (!editor) return;
-    const title = (document.getElementById("note-title") as HTMLInputElement)?.value;
-    if (!title?.trim()) return;
-    
+    let title = (document.getElementById("note-title") as HTMLInputElement)?.value;
     const content = editor.getHTML();
+    
+    // Auto-generate title from content if empty
+    if (!title?.trim()) {
+      const textContent = editor.getText().trim();
+      title = textContent.substring(0, 50) || "Untitled Note";
+      if (textContent.length > 50) title += "...";
+    }
     
     if (note && onSave) {
       // Edit mode
@@ -67,6 +72,33 @@ export const NoteEditor = ({ note, onSave, onCreate, onCancel }: NoteEditorProps
         />
         {editor && (
           <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={editor.isActive("heading", { level: 1 }) ? "bg-accent" : ""}
+              title="Title"
+            >
+              <Heading1 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={editor.isActive("heading", { level: 2 }) ? "bg-accent" : ""}
+              title="Subtitle"
+            >
+              <Heading2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().setParagraph().run()}
+              className={editor.isActive("paragraph") ? "bg-accent" : ""}
+              title="Paragraph"
+            >
+              <Pilcrow className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
