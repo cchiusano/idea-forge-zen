@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,21 +87,48 @@ serve(async (req) => {
               sourcesContent += `\nDocument: ${source.name} - Google Drive file\n`;
             }
           } else {
-            // Supabase storage file - try to download if it's text-based
+            // Supabase storage file
+            const isPDF = source.type === 'application/pdf' || source.name.endsWith('.pdf');
             const isTextFile = source.type.includes('text') || 
-                              source.type.includes('pdf') ||
                               source.name.endsWith('.txt') ||
                               source.name.endsWith('.md');
             
-            if (isTextFile && source.size < 100000) { // Only small text files < 100KB
+            if ((isTextFile || isPDF) && source.size < 5000000) { // Files < 5MB
               const { data: fileData, error: downloadError } = await supabase
                 .storage
                 .from('sources')
                 .download(source.file_path);
               
               if (!downloadError && fileData) {
-                const text = await fileData.text();
-                sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 2000)}\n`;
+                if (isPDF) {
+                  try {
+                    // Parse PDF using pdfjs
+                    const arrayBuffer = await fileData.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    
+                    const loadingTask = pdfjs.getDocument({ data: uint8Array });
+                    const pdf = await loadingTask.promise;
+                    
+                    let text = '';
+                    const numPages = Math.min(pdf.numPages, 10); // Limit to first 10 pages
+                    
+                    for (let i = 1; i <= numPages; i++) {
+                      const page = await pdf.getPage(i);
+                      const content = await page.getTextContent();
+                      const pageText = content.items.map((item: any) => item.str).join(' ');
+                      text += pageText + '\n';
+                    }
+                    
+                    sourcesContent += `\nDocument: ${source.name} (PDF, ${numPages} pages)\nContent:\n${text.substring(0, 3000)}\n`;
+                  } catch (pdfError) {
+                    console.error('PDF parse error:', source.name, pdfError);
+                    sourcesContent += `\nDocument: ${source.name} (PDF) - Could not parse content\n`;
+                  }
+                } else {
+                  // Plain text file
+                  const text = await fileData.text();
+                  sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 3000)}\n`;
+                }
               } else {
                 sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
               }
