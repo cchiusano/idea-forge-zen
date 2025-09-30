@@ -93,11 +93,37 @@ export const useSources = () => {
     },
   });
 
+  const addDriveFileMutation = useMutation({
+    mutationFn: async (driveFile: any) => {
+      const { data, error } = await supabase
+        .from("sources")
+        .insert({
+          name: driveFile.name,
+          type: driveFile.mimeType,
+          size: driveFile.size || 0,
+          file_path: driveFile.webViewLink,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      toast.success("Google Drive file added successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add file: ${error.message}`);
+    },
+  });
+
   return {
     sources,
     isLoading,
     uploadFile: uploadMutation.mutate,
     deleteSource: deleteMutation.mutate,
+    addDriveFile: addDriveFileMutation.mutate,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };

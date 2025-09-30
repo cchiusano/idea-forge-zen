@@ -1,14 +1,16 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2 } from "lucide-react";
+import { Search, Upload, FileText, X, Loader2, Cloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSources } from "@/hooks/useSources";
+import { GoogleDriveDialog } from "./GoogleDriveDialog";
 
 export const SourcesPanel = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const { sources, isLoading, uploadFile, deleteSource, isUploading } = useSources();
+  const [driveDialogOpen, setDriveDialogOpen] = useState(false);
+  const { sources, isLoading, uploadFile, deleteSource, isUploading, addDriveFile } = useSources();
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -92,7 +94,7 @@ export const SourcesPanel = () => {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -100,6 +102,14 @@ export const SourcesPanel = () => {
           onChange={handleFileChange}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
         />
+        <Button 
+          className="w-full" 
+          variant="outline"
+          onClick={() => setDriveDialogOpen(true)}
+        >
+          <Cloud className="h-4 w-4 mr-2" />
+          Select from Google Drive
+        </Button>
         <Button 
           className="w-full" 
           variant="outline"
@@ -114,11 +124,17 @@ export const SourcesPanel = () => {
           ) : (
             <>
               <Upload className="h-4 w-4 mr-2" />
-              Upload Document
+              Upload Local File
             </>
           )}
         </Button>
       </div>
+
+      <GoogleDriveDialog
+        open={driveDialogOpen}
+        onOpenChange={setDriveDialogOpen}
+        onFileSelect={addDriveFile}
+      />
     </div>
   );
 };

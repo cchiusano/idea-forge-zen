@@ -2,3 +2,9 @@ project_id = "qpsappgemzrmgzunvcho"
 
 [functions.ai-chat]
 verify_jwt = false
+
+[functions.google-drive-auth]
+verify_jwt = false
+
+[functions.google-drive-files]
+verify_jwt = false
