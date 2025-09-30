@@ -161,7 +161,7 @@ serve(async (req) => {
 
     const systemPrompt = `You are a helpful AI assistant that helps users manage their tasks, notes, and analyze their documents. 
 
-Here is the current data:
+Here is the user's current data:
 
 TASKS:
 ${tasksContext}
@@ -172,7 +172,11 @@ ${notesContext}
 SOURCE DOCUMENTS:
 ${sourcesContent || 'No source documents uploaded yet.'}
 
-Answer the user's question based on this data. Be concise and helpful. If asked about tasks, notes, or documents, reference the actual data above. For document analysis, provide insights based on the content shown.`;
+Your primary job is to help with questions about the data above. When the user asks about their tasks, notes, or documents, always reference and prioritize this information.
+
+However, you can also answer general questions on any topic. If a question isn't related to the user's data, feel free to provide helpful general knowledge answers.
+
+Be concise, helpful, and conversational.`;
 
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
