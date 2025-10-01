@@ -19,26 +19,22 @@ serve(async (req) => {
 
     // Initialize Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!; // admin for storage only
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!; // RLS-aware for user data
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
 
-    // User client with the caller's JWT
+    // User client with RLS enforcement - uses auth from request
+    const authHeader = req.headers.get('Authorization')!;
     const userSupabase = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+      global: { headers: { Authorization: authHeader } },
     });
 
-    // Admin client for storage/downloads and internal calls
+    // Admin client for storage/downloads only
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
-    }
-
-    // Search tasks, notes, and sources (RLS-enforced)
-    let tasksQuery = userSupabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    let notesQuery = userSupabase.from('notes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    let sourcesQuery = userSupabase.from('sources').select('*').eq('user_id', user.id).order('uploaded_at', { ascending: false });
+    // Search tasks, notes, and sources (RLS will filter by user automatically)
+    let tasksQuery = userSupabase.from('tasks').select('*').order('created_at', { ascending: false });
+    let notesQuery = userSupabase.from('notes').select('*').order('created_at', { ascending: false });
+    let sourcesQuery = userSupabase.from('sources').select('*').order('uploaded_at', { ascending: false });
 
     // Filter by project if provided
     if (projectId) {
