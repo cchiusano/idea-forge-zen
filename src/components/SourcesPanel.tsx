@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles } from "lucide-react";
+import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles, Lightbulb } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSources } from "@/hooks/useSources";
 import { GoogleDriveDialog } from "./GoogleDriveDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,8 @@ export const SourcesPanel = () => {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [currentSummary, setCurrentSummary] = useState("");
   const [summarizingSource, setSummarizingSource] = useState<string | null>(null);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
+  const [generatingInsights, setGeneratingInsights] = useState(false);
   const { sources, isLoading, uploadFile, deleteSource, isUploading, addDriveFile } = useSources();
 
   const handleUploadClick = () => {
@@ -94,6 +97,49 @@ export const SourcesPanel = () => {
       toast.error(error instanceof Error ? error.message : 'Failed to summarize document');
     } finally {
       setSummarizingSource(null);
+    }
+  };
+
+  const toggleSourceSelection = (sourceId: string) => {
+    setSelectedSourceIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sourceId)) {
+        newSet.delete(sourceId);
+      } else {
+        newSet.add(sourceId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGenerateInsights = async () => {
+    if (selectedSourceIds.size < 2) {
+      toast.error('Please select at least 2 sources to generate insights');
+      return;
+    }
+
+    setGeneratingInsights(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { 
+          messages: [{ 
+            role: 'user', 
+            content: 'Analyze these documents and generate cross-document insights.' 
+          }],
+          sourceIds: Array.from(selectedSourceIds)
+        }
+      });
+
+      if (error) throw error;
+      
+      setCurrentSummary(data.message);
+      setSummaryDialogOpen(true);
+      setSelectedSourceIds(new Set()); // Clear selection
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      toast.error('Failed to generate insights');
+    } finally {
+      setGeneratingInsights(false);
     }
   };
 
@@ -201,6 +247,12 @@ export const SourcesPanel = () => {
               key={source.id}
               className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
             >
+              <Checkbox 
+                checked={selectedSourceIds.has(source.id)}
+                onCheckedChange={() => toggleSourceSelection(source.id)}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1"
+              />
               <FileText className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div 
                 className="flex-1 min-w-0 cursor-pointer"
@@ -264,6 +316,26 @@ export const SourcesPanel = () => {
       </ScrollArea>
 
       <div className="p-4 border-t space-y-2">
+        {selectedSourceIds.size > 0 && (
+          <Button 
+            className="w-full" 
+            variant="default"
+            onClick={handleGenerateInsights}
+            disabled={generatingInsights || selectedSourceIds.size < 2}
+          >
+            {generatingInsights ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating Insights...
+              </>
+            ) : (
+              <>
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Generate Insights ({selectedSourceIds.size} selected)
+              </>
+            )}
+          </Button>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -271,7 +343,7 @@ export const SourcesPanel = () => {
           onChange={handleFileChange}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
         />
-        <Button 
+        <Button
           className="w-full" 
           variant="outline"
           onClick={() => setDriveDialogOpen(true)}
@@ -308,7 +380,9 @@ export const SourcesPanel = () => {
       <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Document Summary</DialogTitle>
+            <DialogTitle>
+              {selectedSourceIds.size > 1 ? 'Cross-Document Insights' : 'Document Summary'}
+            </DialogTitle>
           </DialogHeader>
           <MarkdownRenderer content={currentSummary} />
         </DialogContent>

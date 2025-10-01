@@ -13,7 +13,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
-  userQuestion?: string; // For assistant messages, store the original user question
+  userQuestion?: string;
+  sources?: Array<{id: string, name: string}>;
 }
 
 export const AIAssistantPanel = () => {
@@ -131,7 +132,8 @@ export const AIAssistantPanel = () => {
         role: "assistant",
         content: data.message,
         timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        userQuestion: userQuestion // Store the user's question with the response
+        userQuestion: userQuestion,
+        sources: data.sources || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -167,6 +169,18 @@ export const AIAssistantPanel = () => {
                 {message.role === 'assistant' ? (
                   <>
                     <MarkdownRenderer content={message.content} className="text-sm" />
+                    {message.sources && message.sources.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Sources referenced:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {message.sources.map((source) => (
+                            <span key={source.id} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                              {source.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                       <p className="text-xs text-muted-foreground">
                         {message.timestamp}

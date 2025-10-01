@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, sourceIds, projectId } = await req.json();
     const userMessage = messages[messages.length - 1].content;
 
     console.log("User message:", userMessage);
@@ -23,27 +23,36 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Search tasks, notes, and sources
-    const { data: tasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let tasksQuery = supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    let notesQuery = supabase.from('notes').select('*').order('created_at', { ascending: false });
+    let sourcesQuery = supabase.from('sources').select('*').order('uploaded_at', { ascending: false });
 
-    const { data: notes } = await supabase
-      .from('notes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Filter by project if provided
+    if (projectId) {
+      tasksQuery = tasksQuery.eq('project_id', projectId);
+      notesQuery = notesQuery.eq('project_id', projectId);
+      sourcesQuery = sourcesQuery.eq('project_id', projectId);
+    }
 
-    const { data: sources } = await supabase
-      .from('sources')
-      .select('*')
-      .order('uploaded_at', { ascending: false });
+    // Filter by specific source IDs if provided
+    if (sourceIds && sourceIds.length > 0) {
+      sourcesQuery = sourcesQuery.in('id', sourceIds);
+    }
+
+    const { data: tasks } = await tasksQuery;
+    const { data: notes } = await notesQuery;
+    const { data: sources } = await sourcesQuery;
 
     console.log("Found tasks:", tasks?.length, "notes:", notes?.length, "sources:", sources?.length);
 
     // Fetch source content for files in storage and Google Drive
     let sourcesContent = '';
+    const sourcesUsed: Array<{id: string, name: string}> = [];
+    const maxSources = sourceIds && sourceIds.length > 0 ? sourceIds.length : 10;
+    
     if (sources && sources.length > 0) {
-      for (const source of sources.slice(0, 10)) { // Increased to 10 most recent sources
+      for (const source of sources.slice(0, maxSources)) {
+        sourcesUsed.push({ id: source.id, name: source.name });
         try {
           // Check if it's a Google Drive link or storage file
           if (source.file_path.startsWith('http')) {
@@ -159,7 +168,24 @@ serve(async (req) => {
       `Note: ${n.title} - ${n.content?.replace(/<[^>]*>/g, '').substring(0, 200)}`
     ).join('\n') || 'No notes found.';
 
-    const systemPrompt = `You are a helpful AI assistant that helps users manage their tasks, notes, and analyze their documents. 
+    const isInsightsRequest = sourceIds && sourceIds.length > 1;
+    
+    const systemPrompt = isInsightsRequest 
+      ? `You are an expert research analyst. Analyze these ${sources?.length || 0} documents and generate cross-document insights.
+
+SOURCE DOCUMENTS:
+${sourcesContent || 'No source documents provided.'}
+
+Your task:
+1. Identify common themes and patterns across all documents
+2. Highlight contradictions or different perspectives
+3. Find connections and relationships between documents
+4. Suggest actionable insights based on the collective information
+5. At the end, list the documents you analyzed in this format:
+   📄 Sources analyzed: [Document 1], [Document 2], [Document 3]
+
+Be thorough, analytical, and cite specific documents when making points.`
+      : `You are a helpful AI assistant that helps users manage their tasks, notes, and analyze their documents. 
 
 Here is the user's current data:
 
@@ -171,6 +197,12 @@ ${notesContext}
 
 SOURCE DOCUMENTS:
 ${sourcesContent || 'No source documents uploaded yet.'}
+
+Important: When answering questions about documents or sources:
+1. Cite the specific document name in your response like this: "According to [Document Name]..."
+2. If you reference information from multiple documents, mention all of them
+3. At the end of your response, list which documents you used in this format:
+   📄 Sources: [Document 1], [Document 2]
 
 Your primary job is to help with questions about the data above. When the user asks about their tasks, notes, or documents, always reference and prioritize this information.
 
@@ -208,10 +240,13 @@ Be concise, helpful, and conversational.`;
     const aiData = await aiResponse.json();
     const assistantMessage = aiData.choices[0].message.content;
 
-    console.log("AI response generated");
+    console.log("AI response generated, sources used:", sourcesUsed.length);
 
     return new Response(
-      JSON.stringify({ message: assistantMessage }),
+      JSON.stringify({ 
+        message: assistantMessage,
+        sources: sourcesUsed
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
