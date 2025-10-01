@@ -20,7 +20,7 @@ serve(async (req) => {
     // Initialize Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // User client with RLS enforcement - uses auth from request
     const authHeader = req.headers.get('Authorization')!;
