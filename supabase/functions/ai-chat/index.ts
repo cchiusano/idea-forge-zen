@@ -17,15 +17,28 @@ serve(async (req) => {
 
     console.log("User message:", userMessage);
 
-    // Initialize Supabase client
+    // Initialize Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!; // admin for storage only
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!; // RLS-aware for user data
 
-    // Search tasks, notes, and sources
-    let tasksQuery = supabase.from('tasks').select('*').order('created_at', { ascending: false });
-    let notesQuery = supabase.from('notes').select('*').order('created_at', { ascending: false });
-    let sourcesQuery = supabase.from('sources').select('*').order('uploaded_at', { ascending: false });
+    // User client with the caller's JWT
+    const userSupabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+    });
+
+    // Admin client for storage/downloads and internal calls
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
+    // Search tasks, notes, and sources (RLS-enforced)
+    let tasksQuery = userSupabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    let notesQuery = userSupabase.from('notes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    let sourcesQuery = userSupabase.from('sources').select('*').eq('user_id', user.id).order('uploaded_at', { ascending: false });
 
     // Filter by project if provided
     if (projectId) {
@@ -72,7 +85,7 @@ serve(async (req) => {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${supabaseKey}`,
+                      'Authorization': `Bearer ${serviceKey}`,
                     },
                     body: JSON.stringify({ fileId, mimeType: source.type }),
                   });
@@ -111,7 +124,7 @@ serve(async (req) => {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Authorization': `Bearer ${serviceKey}`,
                       },
                       body: JSON.stringify({ pdfData: base64 }),
                     });

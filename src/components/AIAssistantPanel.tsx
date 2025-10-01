@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { useNotes } from "@/hooks/useNotes";
-
+import { useProject } from "@/contexts/ProjectContext";
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -32,6 +32,7 @@ export const AIAssistantPanel = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
   const { createNote } = useNotes();
+  const { selectedProjectId } = useProject();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +122,8 @@ export const AIAssistantPanel = () => {
           messages: [...messages, userMessage].map(m => ({ 
             role: m.role, 
             content: m.content 
-          }))
+          })),
+          projectId: selectedProjectId || null
         }
       });
 
