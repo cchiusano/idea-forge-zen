@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Task = Tables<"tasks">;
@@ -11,18 +12,25 @@ type TaskUpdate = TablesUpdate<"tasks">;
 export const useTasks = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
 
   const { data: tasks = [], isLoading, error: queryError } = useQuery({
-    queryKey: ["tasks"],
+    queryKey: ["tasks", selectedProjectId],
     queryFn: async () => {
       console.log("Fetching tasks...");
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("tasks")
           .select("*")
           .order("order", { ascending: true })
           .order("created_at", { ascending: false });
+
+        if (selectedProjectId) {
+          query = query.eq("project_id", selectedProjectId);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
           console.error("Supabase error:", error);
@@ -49,7 +57,7 @@ export const useTasks = () => {
       
       const { data, error } = await supabase
         .from("tasks")
-        .insert({ ...task, user_id: user.id })
+        .insert({ ...task, user_id: user.id, project_id: selectedProjectId })
         .select()
         .single();
 
@@ -57,7 +65,7 @@ export const useTasks = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
       toast({
         title: "Task created",
         description: "Your task has been created successfully.",
@@ -85,7 +93,7 @@ export const useTasks = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
       toast({
         title: "Task updated",
         description: "Your task has been updated successfully.",
@@ -106,7 +114,7 @@ export const useTasks = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
       toast({
         title: "Task deleted",
         description: "Your task has been deleted successfully.",
@@ -134,7 +142,7 @@ export const useTasks = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
     },
     onError: (error) => {
       toast({
@@ -159,7 +167,7 @@ export const useTasks = () => {
       if (errors.length > 0) throw errors[0].error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", selectedProjectId] });
     },
     onError: (error) => {
       toast({

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import { toast } from "sonner";
 
 interface Source {
@@ -14,15 +15,22 @@ interface Source {
 
 export const useSources = () => {
   const { user } = useAuth();
+  const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
 
   const { data: sources = [], isLoading } = useQuery({
-    queryKey: ["sources"],
+    queryKey: ["sources", selectedProjectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("sources")
         .select("*")
         .order("uploaded_at", { ascending: false });
+
+      if (selectedProjectId) {
+        query = query.eq("project_id", selectedProjectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Source[];
@@ -56,6 +64,7 @@ export const useSources = () => {
           size: file.size,
           file_path: filePath,
           user_id: user.id,
+          project_id: selectedProjectId,
         })
         .select()
         .single();
@@ -64,7 +73,7 @@ export const useSources = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: ["sources", selectedProjectId] });
       toast.success("File uploaded successfully");
     },
     onError: (error: Error) => {
@@ -90,7 +99,7 @@ export const useSources = () => {
       if (dbError) throw dbError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: ["sources", selectedProjectId] });
       toast.success("File deleted successfully");
     },
     onError: (error: Error) => {
@@ -110,6 +119,7 @@ export const useSources = () => {
           size: driveFile.size || 0,
           file_path: driveFile.webViewLink,
           user_id: user.id,
+          project_id: selectedProjectId,
         })
         .select()
         .single();
@@ -118,7 +128,7 @@ export const useSources = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: ["sources", selectedProjectId] });
       toast.success("Google Drive file added successfully");
     },
     onError: (error: Error) => {

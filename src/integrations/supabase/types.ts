@@ -46,6 +46,7 @@ export type Database = {
           content: string | null
           created_at: string | null
           id: string
+          project_id: string | null
           title: string
           updated_at: string | null
           user_id: string | null
@@ -54,6 +55,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          project_id?: string | null
           title: string
           updated_at?: string | null
           user_id?: string | null
@@ -62,9 +64,45 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          project_id?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -74,6 +112,7 @@ export type Database = {
           file_path: string
           id: string
           name: string
+          project_id: string | null
           size: number
           type: string
           uploaded_at: string | null
@@ -84,6 +123,7 @@ export type Database = {
           file_path: string
           id?: string
           name: string
+          project_id?: string | null
           size: number
           type: string
           uploaded_at?: string | null
@@ -94,12 +134,21 @@ export type Database = {
           file_path?: string
           id?: string
           name?: string
+          project_id?: string | null
           size?: number
           type?: string
           uploaded_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -111,6 +160,7 @@ export type Database = {
           id: string
           order: number | null
           priority: string | null
+          project_id: string | null
           title: string
           updated_at: string | null
           user_id: string | null
@@ -124,6 +174,7 @@ export type Database = {
           id?: string
           order?: number | null
           priority?: string | null
+          project_id?: string | null
           title: string
           updated_at?: string | null
           user_id?: string | null
@@ -137,11 +188,20 @@ export type Database = {
           id?: string
           order?: number | null
           priority?: string | null
+          project_id?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

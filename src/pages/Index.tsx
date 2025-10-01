@@ -4,6 +4,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { SourcesPanel } from "@/components/SourcesPanel";
 import { AIAssistantPanel } from "@/components/AIAssistantPanel";
 import { TasksNotesPanel } from "@/components/TasksNotesPanel";
+import { ProjectSelector } from "@/components/ProjectSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,7 +46,10 @@ const Index = () => {
   return (
     <div className="h-screen w-full bg-background flex flex-col">
       <header className="border-b p-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">My Workspace</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold">My Workspace</h1>
+          <ProjectSelector />
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground">{user.email}</span>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>

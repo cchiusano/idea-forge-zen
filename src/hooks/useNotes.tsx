@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Note = Tables<"notes">;
@@ -11,17 +12,24 @@ type NoteUpdate = TablesUpdate<"notes">;
 export const useNotes = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
 
   const { data: notes = [], isLoading, error: queryError } = useQuery({
-    queryKey: ["notes"],
+    queryKey: ["notes", selectedProjectId],
     queryFn: async () => {
       console.log("Fetching notes...");
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("notes")
           .select("*")
           .order("created_at", { ascending: false });
+
+        if (selectedProjectId) {
+          query = query.eq("project_id", selectedProjectId);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
           console.error("Supabase error:", error);
@@ -48,7 +56,7 @@ export const useNotes = () => {
       
       const { data, error } = await supabase
         .from("notes")
-        .insert({ ...note, user_id: user.id })
+        .insert({ ...note, user_id: user.id, project_id: selectedProjectId })
         .select()
         .single();
 
@@ -56,7 +64,7 @@ export const useNotes = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["notes", selectedProjectId] });
       toast({
         title: "Note created",
         description: "Your note has been created successfully.",
@@ -84,7 +92,7 @@ export const useNotes = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["notes", selectedProjectId] });
       toast({
         title: "Note updated",
         description: "Your note has been updated successfully.",
@@ -105,7 +113,7 @@ export const useNotes = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["notes", selectedProjectId] });
       toast({
         title: "Note deleted",
         description: "Your note has been deleted successfully.",
