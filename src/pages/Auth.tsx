@@ -104,9 +104,9 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-scale-in">
         <CardHeader>
-          <CardTitle>Welcome</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">Welcome</CardTitle>
           <CardDescription>Sign in to access your workspace</CardDescription>
         </CardHeader>
         <CardContent>

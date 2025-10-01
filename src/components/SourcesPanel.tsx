@@ -215,10 +215,10 @@ export const SourcesPanel = () => {
 
   return (
     <div className="flex flex-col h-full border-r bg-background">
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText className="h-5 w-5" />
-          <h2 className="font-semibold">Sources</h2>
+      <div className="p-3 md:p-4 border-b">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
+          <FileText className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-sm md:text-base">Sources</h2>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -232,20 +232,20 @@ export const SourcesPanel = () => {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
+        <div className="p-3 md:p-4 space-y-2">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8 animate-fade-in">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredSources.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
+            <div className="text-center py-8 text-muted-foreground text-sm animate-fade-in-up">
               {searchQuery ? "No sources found" : "No sources uploaded yet"}
             </div>
           ) : (
             filteredSources.map((source) => (
             <div
               key={source.id}
-              className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+              className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg border bg-card hover:bg-accent/50 hover:shadow-md transition-all group animate-fade-in cursor-pointer"
             >
               <Checkbox 
                 checked={selectedSourceIds.has(source.id)}
@@ -315,10 +315,10 @@ export const SourcesPanel = () => {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t space-y-2">
+      <div className="p-3 md:p-4 border-t space-y-2 bg-background/50 backdrop-blur-sm">
         {selectedSourceIds.size > 0 && (
           <Button 
-            className="w-full" 
+            className="w-full hover:scale-105 transition-transform animate-fade-in" 
             variant="default"
             onClick={handleGenerateInsights}
             disabled={generatingInsights || selectedSourceIds.size < 2}
@@ -326,12 +326,12 @@ export const SourcesPanel = () => {
             {generatingInsights ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating Insights...
+                <span className="text-xs md:text-sm">Generating...</span>
               </>
             ) : (
               <>
                 <Lightbulb className="h-4 w-4 mr-2" />
-                Generate Insights ({selectedSourceIds.size} selected)
+                <span className="text-xs md:text-sm">Generate Insights ({selectedSourceIds.size})</span>
               </>
             )}
           </Button>
@@ -344,15 +344,15 @@ export const SourcesPanel = () => {
           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
         />
         <Button
-          className="w-full" 
+          className="w-full hover:scale-105 transition-transform" 
           variant="outline"
           onClick={() => setDriveDialogOpen(true)}
         >
           <Cloud className="h-4 w-4 mr-2" />
-          Select from Google Drive
+          <span className="text-xs md:text-sm">Google Drive</span>
         </Button>
         <Button 
-          className="w-full" 
+          className="w-full hover:scale-105 transition-transform" 
           variant="outline"
           onClick={handleUploadClick}
           disabled={isUploading}
@@ -360,12 +360,12 @@ export const SourcesPanel = () => {
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Uploading...
+              <span className="text-xs md:text-sm">Uploading...</span>
             </>
           ) : (
             <>
               <Upload className="h-4 w-4 mr-2" />
-              Upload Local File
+              <span className="text-xs md:text-sm">Upload File</span>
             </>
           )}
         </Button>

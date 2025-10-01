@@ -63,7 +63,7 @@ const SortableTask = ({ task, onEdit, onDelete, onToggle, getPriorityColor }: So
     <div
       ref={setNodeRef}
       style={style}
-      className={`p-4 rounded-lg border bg-card ${task.completed ? 'opacity-60' : ''}`}
+      className={`p-3 md:p-4 rounded-lg border bg-card hover:shadow-md transition-all ${task.completed ? 'opacity-60' : ''} ${isDragging ? 'shadow-lg' : ''}`}
     >
       <div className="flex items-start gap-3">
         <div 
@@ -233,35 +233,36 @@ export const TasksNotesPanel = () => {
   return (
     <div className="flex flex-col h-full border-l bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-        <div className="p-4 border-b">
+        <div className="p-3 md:p-4 border-b">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <TabsTrigger value="tasks" className="flex items-center gap-2 text-xs md:text-sm data-[state=active]:animate-scale-in">
               <CheckSquare className="h-4 w-4" />
-              Tasks
+              <span>Tasks</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2">
+            <TabsTrigger value="notes" className="flex items-center gap-2 text-xs md:text-sm data-[state=active]:animate-scale-in">
               <FileEdit className="h-4 w-4" />
-              Notes
+              <span>Notes</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="tasks" className="flex-1 mt-0">
-          <div className="p-4 border-b">
+          <div className="p-3 md:p-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5" />
-                <span className="font-semibold">Tasks</span>
+                <CheckSquare className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-sm md:text-base">Tasks</span>
               </div>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs md:text-sm text-muted-foreground">
                 {completedCount}/{tasks.length}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1 md:gap-2">
               <Button 
                 variant={filter === "all" ? "secondary" : "ghost"} 
                 size="sm"
                 onClick={() => setFilter("all")}
+                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
               >
                 All
               </Button>
@@ -269,6 +270,7 @@ export const TasksNotesPanel = () => {
                 variant={filter === "active" ? "secondary" : "ghost"} 
                 size="sm"
                 onClick={() => setFilter("active")}
+                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
               >
                 Active
               </Button>
@@ -276,6 +278,7 @@ export const TasksNotesPanel = () => {
                 variant={filter === "done" ? "secondary" : "ghost"} 
                 size="sm"
                 onClick={() => setFilter("done")}
+                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
               >
                 Done
               </Button>
@@ -283,7 +286,7 @@ export const TasksNotesPanel = () => {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-4 space-y-3">
+            <div className="p-3 md:p-4 space-y-2 md:space-y-3">
               {tasksLoading ? (
                 <div className="text-center py-8 text-muted-foreground">Loading tasks...</div>
               ) : filteredTasks.length === 0 ? (
@@ -320,27 +323,27 @@ export const TasksNotesPanel = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-4 border-t">
-            <Button onClick={() => setCreatingTask(true)} className="w-full">
+          <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
+            <Button onClick={() => setCreatingTask(true)} className="w-full hover:scale-105 transition-transform">
               + New Task
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="notes" className="flex-1 mt-0">
-          <div className="p-4 border-b">
+          <div className="p-3 md:p-4 border-b">
             <div className="flex items-center gap-2">
-              <FileEdit className="h-5 w-5" />
-              <span className="font-semibold">Notes</span>
+              <FileEdit className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-sm md:text-base">Notes</span>
             </div>
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-4">
+            <div className="p-3 md:p-4">
               {notesLoading ? (
-                <div className="text-center py-12 text-muted-foreground">Loading notes...</div>
+                <div className="text-center py-12 text-muted-foreground animate-fade-in">Loading notes...</div>
               ) : notes.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 animate-fade-in-up">
                   <FileEdit className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                   <p className="text-sm text-muted-foreground">No notes yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -348,11 +351,11 @@ export const TasksNotesPanel = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {notes.map((note) => (
                     <div
                       key={note.id}
-                      className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group cursor-pointer"
+                      className="p-3 md:p-4 rounded-lg border bg-card hover:bg-accent/50 hover:shadow-md transition-all group cursor-pointer animate-fade-in"
                       onClick={() => setEditingNote(note)}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -393,8 +396,8 @@ export const TasksNotesPanel = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-4 border-t">
-            <Button onClick={() => setCreatingNote(true)} className="w-full">
+          <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
+            <Button onClick={() => setCreatingNote(true)} className="w-full hover:scale-105 transition-transform">
               + New Note
             </Button>
           </div>

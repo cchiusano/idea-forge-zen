@@ -153,21 +153,21 @@ export const AIAssistantPanel = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="p-4 border-b">
+      <div className="p-3 md:p-4 border-b">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          <h2 className="font-semibold">AI Assistant</h2>
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-sm md:text-base">AI Assistant</h2>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Ask questions about your sources, notes, and todos
         </p>
       </div>
 
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
-        <div className="p-4 space-y-4">
+        <div className="p-3 md:p-4 space-y-3 md:space-y-4">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] ${message.role === 'assistant' ? 'bg-muted' : 'bg-primary text-primary-foreground'} rounded-lg p-4`}>
+            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+              <div className={`max-w-[85%] md:max-w-[80%] ${message.role === 'assistant' ? 'bg-muted hover:shadow-md' : 'bg-primary text-primary-foreground hover:shadow-md'} rounded-lg p-3 md:p-4 transition-shadow`}>
                 {message.role === 'assistant' ? (
                   <>
                     <MarkdownRenderer content={message.content} className="text-sm" />
@@ -233,16 +233,21 @@ export const AIAssistantPanel = () => {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
         <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask me anything..."
-            className="flex-1"
+            className="flex-1 transition-all focus:ring-2 focus:ring-primary/20"
           />
-          <Button onClick={handleSend} size="icon" disabled={isLoading || !input.trim()}>
+          <Button 
+            onClick={handleSend} 
+            size="icon" 
+            disabled={isLoading || !input.trim()}
+            className="hover:scale-105 transition-transform"
+          >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -250,8 +255,8 @@ export const AIAssistantPanel = () => {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Press Enter to send, Shift+Enter for new line
+        <p className="text-xs text-muted-foreground mt-2 hidden md:block">
+          Press Enter to send
         </p>
       </div>
     </div>

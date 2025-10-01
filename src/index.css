@@ -102,6 +102,11 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Smooth transitions for all interactive elements */
+  button, a, input, textarea {
+    @apply transition-all duration-200;
+  }
 }
 
 /* Tiptap Editor Styles */
