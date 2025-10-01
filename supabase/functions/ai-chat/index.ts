@@ -52,7 +52,7 @@ serve(async (req) => {
     
     if (sources && sources.length > 0) {
       for (const source of sources.slice(0, maxSources)) {
-        sourcesUsed.push({ id: source.id, name: source.name });
+        let contentAdded = false;
         try {
           // Check if it's a Google Drive link or storage file
           if (source.file_path.startsWith('http')) {
@@ -79,20 +79,14 @@ serve(async (req) => {
                   
                   if (contentResponse.ok) {
                     const { content } = await contentResponse.json();
-                    const truncatedContent = content.substring(0, 8000); // Increased to 8000 chars
+                    const truncatedContent = content.substring(0, 8000);
                     sourcesContent += `\nDocument: ${source.name} (Google ${isGoogleDoc ? 'Doc' : isGoogleSheet ? 'Sheet' : 'Slides'})\nContent:\n${truncatedContent}\n`;
-                  } else {
-                    sourcesContent += `\nDocument: ${source.name} (${source.type}) - Could not fetch content\n`;
+                    contentAdded = true;
                   }
                 } catch (fetchErr) {
                   console.error('Error fetching Google Drive content:', source.name, fetchErr);
-                  sourcesContent += `\nDocument: ${source.name} (${source.type}) - Error fetching content\n`;
                 }
-              } else {
-                sourcesContent += `\nDocument: ${source.name} (${source.type}) - Google Drive file\n`;
               }
-            } else {
-              sourcesContent += `\nDocument: ${source.name} - Google Drive file\n`;
             }
           } else {
             // Supabase storage file
@@ -101,7 +95,7 @@ serve(async (req) => {
                               source.name.endsWith('.txt') ||
                               source.name.endsWith('.md');
             
-            if ((isTextFile || isPDF) && source.size < 5000000) { // Files < 5MB
+            if ((isTextFile || isPDF) && source.size < 5000000) {
               const { data: fileData, error: downloadError } = await supabase
                 .storage
                 .from('sources')
@@ -110,7 +104,6 @@ serve(async (req) => {
               if (!downloadError && fileData) {
                 if (isPDF) {
                   try {
-                    // Parse PDF using dedicated function
                     const arrayBuffer = await fileData.arrayBuffer();
                     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                     
@@ -124,37 +117,31 @@ serve(async (req) => {
                     });
                     
                     if (pdfResponse.ok) {
-                      const { text, extracted, wordCount, method, needsOCR } = await pdfResponse.json();
+                      const { text, extracted, wordCount, needsOCR } = await pdfResponse.json();
                       if (extracted && text) {
                         const label = needsOCR ? 'partially readable' : 'text-based';
-                        sourcesContent += `\nDocument: ${source.name} (PDF, ${label}, ~${wordCount} words)\nContent:\n${text.substring(0, 10000)}\n`; // Increased to 10000 chars
-                      } else if (needsOCR) {
-                        sourcesContent += `\nDocument: ${source.name} (PDF, image-based/scanned) - Text extraction not available. This PDF appears to be a scanned document or image.\n`;
-                      } else {
-                        sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text content\n`;
+                        sourcesContent += `\nDocument: ${source.name} (PDF, ${label}, ~${wordCount} words)\nContent:\n${text.substring(0, 10000)}\n`;
+                        contentAdded = true;
                       }
-                    } else {
-                      sourcesContent += `\nDocument: ${source.name} (PDF) - Could not extract text\n`;
                     }
                   } catch (pdfError) {
                     console.error('PDF parse error:', source.name, pdfError);
-                    sourcesContent += `\nDocument: ${source.name} (PDF) - Error parsing\n`;
                   }
                 } else {
-                  // Plain text file
                   const text = await fileData.text();
-                  sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 8000)}\n`; // Increased to 8000 chars
+                  sourcesContent += `\nDocument: ${source.name}\nContent:\n${text.substring(0, 8000)}\n`;
+                  contentAdded = true;
                 }
-              } else {
-                sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
               }
-            } else {
-              sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
             }
           }
         } catch (err) {
           console.error('Error fetching source:', source.name, err);
-          sourcesContent += `\nDocument: ${source.name} (${source.type})\n`;
+        }
+        
+        // Only add to sourcesUsed if we actually got content
+        if (contentAdded) {
+          sourcesUsed.push({ id: source.id, name: source.name });
         }
       }
     }
