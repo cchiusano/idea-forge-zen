@@ -102,61 +102,74 @@ const Index = () => {
           </Tabs>
         </div>
       ) : (
-        <div className="flex-1 overflow-hidden animate-fade-in-up relative">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+        <div className="flex-1 overflow-hidden animate-fade-in-up flex">
+          {sourcesCollapsed && (
+            <div className="w-16 border-r bg-card flex items-center justify-center py-4">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setSourcesCollapsed(false)}
+                className="h-10 w-10"
+              >
+                <FileText className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+          
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {!sourcesCollapsed && (
+              <>
+                <ResizablePanel 
+                  defaultSize={25} 
+                  minSize={20} 
+                  maxSize={35}
+                  collapsible={true}
+                  collapsedSize={0}
+                  onCollapse={() => setSourcesCollapsed(true)}
+                  onExpand={() => setSourcesCollapsed(false)}
+                >
+                  <SourcesPanel onCollapse={() => setSourcesCollapsed(true)} />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+            
             <ResizablePanel 
-              defaultSize={25} 
-              minSize={sourcesCollapsed ? 0 : 20} 
-              maxSize={sourcesCollapsed ? 0 : 35}
-              collapsible={true}
-              collapsedSize={0}
-              onCollapse={() => setSourcesCollapsed(true)}
-              onExpand={() => setSourcesCollapsed(false)}
+              defaultSize={sourcesCollapsed && notebookCollapsed ? 100 : (!sourcesCollapsed && !notebookCollapsed ? 50 : 75)} 
+              minSize={30}
             >
-              {!sourcesCollapsed && <SourcesPanel onCollapse={() => setSourcesCollapsed(true)} />}
-            </ResizablePanel>
-            
-            {!sourcesCollapsed && <ResizableHandle withHandle />}
-            
-            <ResizablePanel defaultSize={45} minSize={30}>
               <AIAssistantPanel />
             </ResizablePanel>
             
-            {!notebookCollapsed && <ResizableHandle withHandle />}
-            
-            <ResizablePanel 
-              defaultSize={30} 
-              minSize={notebookCollapsed ? 0 : 25} 
-              maxSize={notebookCollapsed ? 0 : 40}
-              collapsible={true}
-              collapsedSize={0}
-              onCollapse={() => setNotebookCollapsed(true)}
-              onExpand={() => setNotebookCollapsed(false)}
-            >
-              {!notebookCollapsed && <TasksNotesPanel onCollapse={() => setNotebookCollapsed(true)} />}
-            </ResizablePanel>
+            {!notebookCollapsed && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel 
+                  defaultSize={25} 
+                  minSize={20} 
+                  maxSize={40}
+                  collapsible={true}
+                  collapsedSize={0}
+                  onCollapse={() => setNotebookCollapsed(true)}
+                  onExpand={() => setNotebookCollapsed(false)}
+                >
+                  <TasksNotesPanel onCollapse={() => setNotebookCollapsed(true)} />
+                </ResizablePanel>
+              </>
+            )}
           </ResizablePanelGroup>
           
-          {sourcesCollapsed && (
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setSourcesCollapsed(false)}
-              className="absolute left-2 top-4 z-50 h-8 w-8 bg-card shadow-md"
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
-          )}
-          
           {notebookCollapsed && (
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setNotebookCollapsed(false)}
-              className="absolute right-2 top-4 z-50 h-8 w-8 bg-card shadow-md"
-            >
-              <CheckSquare className="h-4 w-4" />
-            </Button>
+            <div className="w-16 border-l bg-card flex items-center justify-center py-4">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setNotebookCollapsed(false)}
+                className="h-10 w-10"
+              >
+                <CheckSquare className="h-5 w-5" />
+              </Button>
+            </div>
           )}
         </div>
       )}
