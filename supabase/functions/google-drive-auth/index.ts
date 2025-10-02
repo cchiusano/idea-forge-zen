@@ -33,7 +33,7 @@ serve(async (req) => {
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: '${errorParam}'}, '*');} window.close();</script>
 <p>Authorization cancelled. You can close this window.</p>
 </body></html>`;
-        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
       }
 
       if (!code) {
@@ -41,7 +41,7 @@ serve(async (req) => {
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'missing_code'}, '*');} window.close();</script>
 <p>Missing authorization code.</p>
 </body></html>`;
-        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+        return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
       }
 
       const redirectUri = `${supabaseUrl}/functions/v1/google-drive-auth`;
@@ -64,7 +64,7 @@ serve(async (req) => {
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'token_exchange_failed'}, '*');} window.close();</script>
 <p>Token exchange failed.</p>
 </body></html>`;
-        return new Response(html, { status: 400, headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+        return new Response(html, { status: 400, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
       }
 
       const tokens = await tokenResponse.json();
@@ -86,29 +86,31 @@ serve(async (req) => {
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'db_error'}, '*');} window.close();</script>
 <p>Failed to store tokens.</p>
 </body></html>`;
-        return new Response(html, { status: 500, headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+        return new Response(html, { status: 500, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
       }
 
-      const successHtml = `<!doctype html><html><head><title>Connected</title></head><body>
+      const successHtml = `<!doctype html><html><head><meta charset="utf-8" /><title>Connected</title><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 20px; text-align: center;">
 <script>
-  try {
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'drive-auth', status: 'success' }, '*');
+  (function(){
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'drive-auth', status: 'success' }, '*');
+      }
+    } catch (e) {
+      console.error('postMessage failed:', e);
     }
-  } catch (e) {
-    console.error('postMessage failed:', e);
-  }
-  setTimeout(() => {
-    window.close();
-    // Fallback if close doesn't work
-    setTimeout(() => {
-      document.body.innerHTML = '<p style="font-family: sans-serif; padding: 20px; text-align: center;">✓ Connected successfully!<br><br>You can close this window.</p>';
-    }, 100);
-  }, 500);
+    // Try to close quickly, then replace content as fallback
+    setTimeout(function(){
+      try { window.close(); } catch(_){}
+      setTimeout(function(){
+        document.body.innerHTML = '<p>✓ Connected successfully!<br><br>You can close this window.</p>';
+      }, 100);
+    }, 300);
+  })();
 </script>
-<p style="font-family: sans-serif; padding: 20px; text-align: center;">✓ Connecting...</p>
+<p>✓ Connecting...</p>
 </body></html>`;
-      return new Response(successHtml, { headers: { ...corsHeaders, 'Content-Type': 'text/html' } });
+      return new Response(successHtml, { headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
     }
 
     // Handle POST actions from app (init auth or manual callback)
