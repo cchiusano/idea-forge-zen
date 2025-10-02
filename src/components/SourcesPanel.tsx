@@ -246,7 +246,7 @@ export const SourcesPanel = ({ onCollapse }: SourcesPanelProps) => {
                 onClick={onCollapse}
                 className="h-10 w-10"
               >
-                <PanelLeftClose className="h-6 w-6" />
+                <PanelLeftClose className="h-5 w-5" />
               </Button>
             )}
           </div>

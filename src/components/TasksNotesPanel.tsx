@@ -257,7 +257,7 @@ export const TasksNotesPanel = ({ onCollapse }: TasksNotesPanelProps) => {
                   onClick={onCollapse}
                   className="h-10 w-10"
                 >
-                  <PanelRightClose className="h-6 w-6" />
+                  <PanelRightClose className="h-5 w-5" />
                 </Button>
               )}
             </div>
