@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Search, Upload, FileText, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles, Lightbulb } from "lucide-react";
+import { Search, Upload, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles, Lightbulb, Plus, MoreVertical, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { FileIcon } from "@/components/FileIcon";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Source {
   id: string;
@@ -214,17 +221,25 @@ export const SourcesPanel = () => {
   }
 
   return (
-    <div className="flex flex-col h-full border-r bg-background">
-      <div className="p-3 md:p-4 border-b">
-        <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <FileText className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-sm md:text-base">Sources</h2>
+    <div className="flex flex-col h-full bg-card">
+      <div className="p-4 border-b bg-card space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Sources</h2>
+          <Button 
+            size="sm" 
+            variant="ghost"
+            onClick={() => setDriveDialogOpen(true)}
+            className="h-8 gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search sources..."
-            className="pl-9"
+            placeholder="Search..."
+            className="pl-9 h-9 bg-background border-border"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -232,110 +247,81 @@ export const SourcesPanel = () => {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3 md:p-4 space-y-2">
+        <div className="p-4 space-y-1">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8 animate-fade-in">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : filteredSources.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm animate-fade-in-up">
+            <div className="text-center py-12 text-muted-foreground text-sm">
               {searchQuery ? "No sources found" : "No sources uploaded yet"}
             </div>
           ) : (
             filteredSources.map((source) => (
-            <div
-              key={source.id}
-              className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg border bg-card hover:bg-accent/50 hover:shadow-md transition-all group animate-fade-in cursor-pointer"
-            >
-              <Checkbox 
-                checked={selectedSourceIds.has(source.id)}
-                onCheckedChange={() => toggleSourceSelection(source.id)}
-                onClick={(e) => e.stopPropagation()}
-                className="mt-1"
-              />
-              <FileText className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
-              <div 
-                className="flex-1 min-w-0 cursor-pointer"
+              <div
+                key={source.id}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-all group cursor-pointer"
                 onClick={() => setPreviewSource(source)}
               >
-                <p className="font-medium text-sm truncate">{source.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">{source.type}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  <span className="text-xs text-muted-foreground">{formatFileSize(source.size)}</span>
+                <FileIcon type={source.type} className="h-10 w-10 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{source.name}</p>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                    <span>{new Date(source.uploaded_at).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>{formatFileSize(source.size)}</span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(source.uploaded_at).toLocaleDateString()}
-                </p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSummarize(source);
+                      }}
+                      disabled={summarizingSource === source.id}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Summarize
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewSource(source);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSource(source);
+                      }}
+                      className="text-destructive"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSummarize(source);
-                  }}
-                  disabled={summarizingSource === source.id}
-                  title="Summarize document"
-                >
-                  {summarizingSource === source.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewSource(source);
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSource(source);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
             ))
           )}
         </div>
       </ScrollArea>
 
-      <div className="p-3 md:p-4 border-t space-y-2 bg-background/50 backdrop-blur-sm">
-        {selectedSourceIds.size > 0 && (
-          <Button 
-            className="w-full hover:scale-105 transition-transform animate-fade-in" 
-            variant="default"
-            onClick={handleGenerateInsights}
-            disabled={generatingInsights || selectedSourceIds.size < 2}
-          >
-            {generatingInsights ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                <span className="text-xs md:text-sm">Generating...</span>
-              </>
-            ) : (
-              <>
-                <Lightbulb className="h-4 w-4 mr-2" />
-                <span className="text-xs md:text-sm">Generate Insights ({selectedSourceIds.size})</span>
-              </>
-            )}
-          </Button>
-        )}
+      <div className="p-4 border-t bg-card">
         <input
           ref={fileInputRef}
           type="file"
@@ -343,16 +329,8 @@ export const SourcesPanel = () => {
           onChange={handleFileChange}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
         />
-        <Button
-          className="w-full hover:scale-105 transition-transform" 
-          variant="outline"
-          onClick={() => setDriveDialogOpen(true)}
-        >
-          <Cloud className="h-4 w-4 mr-2" />
-          <span className="text-xs md:text-sm">Google Drive</span>
-        </Button>
         <Button 
-          className="w-full hover:scale-105 transition-transform" 
+          className="w-full" 
           variant="outline"
           onClick={handleUploadClick}
           disabled={isUploading}
@@ -360,12 +338,12 @@ export const SourcesPanel = () => {
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              <span className="text-xs md:text-sm">Uploading...</span>
+              Uploading...
             </>
           ) : (
             <>
               <Upload className="h-4 w-4 mr-2" />
-              <span className="text-xs md:text-sm">Upload File</span>
+              Upload File
             </>
           )}
         </Button>

@@ -49,18 +49,20 @@ const Index = () => {
 
   return (
     <div className="h-screen w-full bg-background flex flex-col">
-      <header className="border-b p-3 md:p-4 flex items-center justify-between animate-fade-in">
-        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
-          <h1 className="text-base md:text-lg font-semibold truncate">My Workspace</h1>
+      <header className="border-b bg-card p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <h1 className="text-lg font-semibold truncate">My Workspace</h1>
           <div className="hidden md:block">
             <ProjectSelector />
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
-          <span className="text-xs md:text-sm text-muted-foreground truncate max-w-[120px] md:max-w-none">{user.email}</span>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="hover:scale-105 transition-transform">
-            <LogOut className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Sign Out</span>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="rounded-full h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {user.email?.[0].toUpperCase()}
           </Button>
         </div>
       </header>

@@ -231,15 +231,27 @@ export const TasksNotesPanel = () => {
   };
 
   return (
-    <div className="flex flex-col h-full border-l bg-background">
+    <div className="flex flex-col h-full bg-card">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-        <div className="p-3 md:p-4 border-b">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tasks" className="flex items-center gap-2 text-xs md:text-sm data-[state=active]:animate-scale-in">
+        <div className="p-4 border-b bg-card">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Notebook</h2>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={() => activeTab === "tasks" ? setCreatingTask(true) : setCreatingNote(true)}
+              className="h-8 gap-1.5"
+            >
+              <CheckSquare className="h-4 w-4" />
+              Add
+            </Button>
+          </div>
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="tasks" className="flex items-center gap-1.5 data-[state=active]:bg-background">
               <CheckSquare className="h-4 w-4" />
               <span>Tasks</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2 text-xs md:text-sm data-[state=active]:animate-scale-in">
+            <TabsTrigger value="notes" className="flex items-center gap-1.5 data-[state=active]:bg-background">
               <FileEdit className="h-4 w-4" />
               <span>Notes</span>
             </TabsTrigger>
@@ -247,46 +259,43 @@ export const TasksNotesPanel = () => {
         </div>
 
         <TabsContent value="tasks" className="flex-1 mt-0">
-          <div className="p-3 md:p-4 border-b">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-sm md:text-base">Tasks</span>
-              </div>
-              <span className="text-xs md:text-sm text-muted-foreground">
-                {completedCount}/{tasks.length}
-              </span>
-            </div>
-            <div className="flex gap-1 md:gap-2">
-              <Button 
-                variant={filter === "all" ? "secondary" : "ghost"} 
-                size="sm"
+          <div className="p-4 border-b bg-card">
+            <div className="flex gap-2">
+              <button
                 onClick={() => setFilter("all")}
-                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  filter === "all" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
               >
                 All
-              </Button>
-              <Button 
-                variant={filter === "active" ? "secondary" : "ghost"} 
-                size="sm"
+              </button>
+              <button
                 onClick={() => setFilter("active")}
-                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  filter === "active" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
               >
-                Active
-              </Button>
-              <Button 
-                variant={filter === "done" ? "secondary" : "ghost"} 
-                size="sm"
+                In Progress
+              </button>
+              <button
                 onClick={() => setFilter("done")}
-                className="flex-1 md:flex-none text-xs md:text-sm transition-all hover:scale-105"
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  filter === "done" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
               >
-                Done
-              </Button>
+                Complete
+              </button>
             </div>
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-3 md:p-4 space-y-2 md:space-y-3">
+            <div className="p-4 space-y-2">
               {tasksLoading ? (
                 <div className="text-center py-8 text-muted-foreground">Loading tasks...</div>
               ) : filteredTasks.length === 0 ? (
@@ -323,23 +332,16 @@ export const TasksNotesPanel = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
-            <Button onClick={() => setCreatingTask(true)} className="w-full hover:scale-105 transition-transform">
+          <div className="p-4 border-t bg-card">
+            <Button onClick={() => setCreatingTask(true)} className="w-full" variant="outline">
               + New Task
             </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="notes" className="flex-1 mt-0">
-          <div className="p-3 md:p-4 border-b">
-            <div className="flex items-center gap-2">
-              <FileEdit className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-sm md:text-base">Notes</span>
-            </div>
-          </div>
-
           <ScrollArea className="flex-1">
-            <div className="p-3 md:p-4">
+            <div className="p-4">
               {notesLoading ? (
                 <div className="text-center py-12 text-muted-foreground animate-fade-in">Loading notes...</div>
               ) : notes.length === 0 ? (
@@ -396,8 +398,8 @@ export const TasksNotesPanel = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
-            <Button onClick={() => setCreatingNote(true)} className="w-full hover:scale-105 transition-transform">
+          <div className="p-4 border-t bg-card">
+            <Button onClick={() => setCreatingNote(true)} className="w-full" variant="outline">
               + New Note
             </Button>
           </div>

@@ -153,14 +153,8 @@ export const AIAssistantPanel = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="p-3 md:p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-sm md:text-base">AI Assistant</h2>
-        </div>
-        <p className="text-xs md:text-sm text-muted-foreground mt-1">
-          Ask questions about your sources, notes, and todos
-        </p>
+      <div className="p-4 border-b bg-card">
+        <h2 className="font-semibold">Chat</h2>
       </div>
 
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
@@ -233,31 +227,28 @@ export const AIAssistantPanel = () => {
         </div>
       </ScrollArea>
 
-      <div className="p-3 md:p-4 border-t bg-background/50 backdrop-blur-sm">
+      <div className="p-4 border-t bg-card">
         <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask me anything..."
-            className="flex-1 transition-all focus:ring-2 focus:ring-primary/20"
+            placeholder="Optional placeholder text"
+            className="flex-1 bg-background border-border h-10"
           />
           <Button 
             onClick={handleSend} 
-            size="icon" 
             disabled={isLoading || !input.trim()}
-            className="hover:scale-105 transition-transform"
+            variant="outline"
+            className="px-6"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              "Text"
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 hidden md:block">
-          Press Enter to send
-        </p>
       </div>
     </div>
   );
