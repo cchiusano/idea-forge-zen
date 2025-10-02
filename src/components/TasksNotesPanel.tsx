@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, FileEdit, Trash2, GripVertical } from "lucide-react";
+import { CheckSquare, FileEdit, Trash2, GripVertical, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -237,13 +237,12 @@ export const TasksNotesPanel = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold">Notebook</h2>
             <Button 
-              size="sm" 
-              variant="ghost"
+              size="icon"
+              variant="outline"
               onClick={() => activeTab === "tasks" ? setCreatingTask(true) : setCreatingNote(true)}
-              className="h-8 gap-1.5"
+              className="h-8 w-8 rounded-full"
             >
-              <CheckSquare className="h-4 w-4" />
-              Add
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
           <TabsList className="grid w-full grid-cols-2 h-9">
