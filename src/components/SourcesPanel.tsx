@@ -226,12 +226,13 @@ export const SourcesPanel = () => {
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Sources</h2>
           <Button 
-            size="icon"
+            size="sm"
             variant="outline"
             onClick={() => setDriveDialogOpen(true)}
-            className="h-8 w-8 rounded-full"
+            className="rounded-full gap-1.5"
           >
             <Plus className="h-4 w-4" />
+            Add
           </Button>
         </div>
         <div className="relative">
