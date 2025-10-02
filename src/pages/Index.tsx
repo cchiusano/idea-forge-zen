@@ -105,14 +105,12 @@ const Index = () => {
         <div className="flex-1 overflow-hidden animate-fade-in-up flex">
           {sourcesCollapsed && (
             <div className="w-16 border-r bg-card flex items-center justify-center py-4">
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
                 onClick={() => setSourcesCollapsed(false)}
-                className="h-10 w-10"
+                className="p-2 hover:bg-accent rounded-md transition-colors"
               >
                 <FileText className="h-5 w-5" />
-              </Button>
+              </button>
             </div>
           )}
           
@@ -161,14 +159,12 @@ const Index = () => {
           
           {notebookCollapsed && (
             <div className="w-16 border-l bg-card flex items-center justify-center py-4">
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
                 onClick={() => setNotebookCollapsed(false)}
-                className="h-10 w-10"
+                className="p-2 hover:bg-accent rounded-md transition-colors"
               >
                 <CheckSquare className="h-5 w-5" />
-              </Button>
+              </button>
             </div>
           )}
         </div>
