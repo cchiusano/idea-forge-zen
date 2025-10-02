@@ -27,8 +27,20 @@ serve(async (req) => {
     if (req.method === 'GET') {
       const code = url.searchParams.get('code');
       const errorParam = url.searchParams.get('error');
+      const stateParam = url.searchParams.get('state');
+      let originFromState = '';
+      try {
+        if (stateParam) {
+          originFromState = JSON.parse(atob(stateParam)).origin || '';
+        }
+      } catch (_) {}
+
 
       if (errorParam) {
+        if (originFromState) {
+          const redirectUrl = `${originFromState}/drive-auth-complete.html?status=error&error=${encodeURIComponent(errorParam)}`;
+          return new Response(null, { status: 302, headers: { ...corsHeaders, Location: redirectUrl } });
+        }
         const html = `<!doctype html><html><body>
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: '${errorParam}'}, '*');} window.close();</script>
 <p>Authorization cancelled. You can close this window.</p>
@@ -37,6 +49,10 @@ serve(async (req) => {
       }
 
       if (!code) {
+        if (originFromState) {
+          const redirectUrl = `${originFromState}/drive-auth-complete.html?status=error&error=missing_code`;
+          return new Response(null, { status: 302, headers: { ...corsHeaders, Location: redirectUrl } });
+        }
         const html = `<!doctype html><html><body>
 <script>if (window.opener){window.opener.postMessage({type:'drive-auth', status:'error', error: 'missing_code'}, '*');} window.close();</script>
 <p>Missing authorization code.</p>
@@ -89,6 +105,11 @@ serve(async (req) => {
         return new Response(html, { status: 500, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
       }
 
+      if (originFromState) {
+        const redirectUrl = `${originFromState}/drive-auth-complete.html?status=success`;
+        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: redirectUrl } });
+      }
+
       const successHtml = `<!doctype html><html><head><meta charset="utf-8" /><title>Connected</title><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 20px; text-align: center;">
 <script>
   (function(){
@@ -99,7 +120,6 @@ serve(async (req) => {
     } catch (e) {
       console.error('postMessage failed:', e);
     }
-    // Try to close quickly, then replace content as fallback
     setTimeout(function(){
       try { window.close(); } catch(_){}
       setTimeout(function(){
@@ -119,6 +139,8 @@ serve(async (req) => {
     if (action === 'init') {
       const redirectUri = `${supabaseUrl}/functions/v1/google-drive-auth`;
       const scope = 'https://www.googleapis.com/auth/drive.readonly';
+      const origin = req.headers.get('origin') || '';
+      const state = btoa(JSON.stringify({ origin }));
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}&` +
@@ -126,7 +148,8 @@ serve(async (req) => {
         `response_type=code&` +
         `scope=${encodeURIComponent(scope)}&` +
         `access_type=offline&` +
-        `prompt=consent`;
+        `prompt=consent&` +
+        `state=${encodeURIComponent(state)}`;
 
       return new Response(
         JSON.stringify({ authUrl }),
