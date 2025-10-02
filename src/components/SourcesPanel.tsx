@@ -244,9 +244,9 @@ export const SourcesPanel = ({ onCollapse }: SourcesPanelProps) => {
                 size="icon"
                 variant="ghost"
                 onClick={onCollapse}
-                className="h-8 w-8"
+                className="h-10 w-10"
               >
-                <PanelLeftClose className="h-4 w-4" />
+                <PanelLeftClose className="h-6 w-6" />
               </Button>
             )}
           </div>
