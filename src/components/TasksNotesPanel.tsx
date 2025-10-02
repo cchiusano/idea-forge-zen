@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, FileEdit, Trash2, GripVertical, Plus } from "lucide-react";
+import { CheckSquare, FileEdit, Trash2, GripVertical, Plus, PanelRightClose } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -125,7 +125,11 @@ const SortableTask = ({ task, onEdit, onDelete, onToggle, getPriorityColor }: So
   );
 };
 
-export const TasksNotesPanel = () => {
+interface TasksNotesPanelProps {
+  onCollapse?: () => void;
+}
+
+export const TasksNotesPanel = ({ onCollapse }: TasksNotesPanelProps) => {
   const { tasks, isLoading: tasksLoading, createTask, updateTask, deleteTask, toggleTask, reorderTasks } = useTasks();
   const { notes, isLoading: notesLoading, createNote, updateNote, deleteNote } = useNotes();
   const [filter, setFilter] = useState<"all" | "active" | "done">("all");
@@ -236,15 +240,27 @@ export const TasksNotesPanel = () => {
         <div className="p-4 border-b bg-card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold">Notebook</h2>
-            <Button 
-              size="sm"
-              variant="outline"
-              onClick={() => activeTab === "tasks" ? setCreatingTask(true) : setCreatingNote(true)}
-              className="rounded-full gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              Add
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => activeTab === "tasks" ? setCreatingTask(true) : setCreatingNote(true)}
+                className="rounded-full gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+              {onCollapse && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={onCollapse}
+                  className="h-8 w-8"
+                >
+                  <PanelRightClose className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <TabsList className="grid w-full grid-cols-2 h-9">
             <TabsTrigger value="tasks" className="flex items-center gap-1.5 data-[state=active]:bg-background">

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Search, Upload, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles, Lightbulb, Plus, MoreVertical, FileText } from "lucide-react";
+import { Search, Upload, X, Loader2, Cloud, Eye, Download, Maximize2, Minimize2, ExternalLink, Sparkles, Lightbulb, Plus, MoreVertical, FileText, PanelLeftClose } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +27,11 @@ interface Source {
   uploaded_at: string;
 }
 
-export const SourcesPanel = () => {
+interface SourcesPanelProps {
+  onCollapse?: () => void;
+}
+
+export const SourcesPanel = ({ onCollapse }: SourcesPanelProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [driveDialogOpen, setDriveDialogOpen] = useState(false);
@@ -225,15 +229,27 @@ export const SourcesPanel = () => {
       <div className="p-4 border-b bg-card space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Sources</h2>
-          <Button 
-            size="sm"
-            variant="outline"
-            onClick={() => setDriveDialogOpen(true)}
-            className="rounded-full gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm"
+              variant="outline"
+              onClick={() => setDriveDialogOpen(true)}
+              className="rounded-full gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              Add
+            </Button>
+            {onCollapse && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onCollapse}
+                className="h-8 w-8"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

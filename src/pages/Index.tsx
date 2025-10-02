@@ -19,6 +19,8 @@ const Index = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("ai");
+  const [sourcesCollapsed, setSourcesCollapsed] = useState(false);
+  const [notebookCollapsed, setNotebookCollapsed] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -89,35 +91,73 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="sources" className="flex-1 m-0 overflow-hidden">
-              <SourcesPanel />
+              <SourcesPanel onCollapse={undefined} />
             </TabsContent>
             <TabsContent value="ai" className="flex-1 m-0 overflow-hidden">
               <AIAssistantPanel />
             </TabsContent>
             <TabsContent value="tasks" className="flex-1 m-0 overflow-hidden">
-              <TasksNotesPanel />
+              <TasksNotesPanel onCollapse={undefined} />
             </TabsContent>
           </Tabs>
         </div>
       ) : (
-        <div className="flex-1 overflow-hidden animate-fade-in-up">
+        <div className="flex-1 overflow-hidden animate-fade-in-up relative">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-              <SourcesPanel />
+            <ResizablePanel 
+              defaultSize={25} 
+              minSize={sourcesCollapsed ? 0 : 20} 
+              maxSize={sourcesCollapsed ? 0 : 35}
+              collapsible={true}
+              collapsedSize={0}
+              onCollapse={() => setSourcesCollapsed(true)}
+              onExpand={() => setSourcesCollapsed(false)}
+            >
+              {!sourcesCollapsed && <SourcesPanel onCollapse={() => setSourcesCollapsed(true)} />}
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            {!sourcesCollapsed && <ResizableHandle withHandle />}
             
             <ResizablePanel defaultSize={45} minSize={30}>
               <AIAssistantPanel />
             </ResizablePanel>
             
-            <ResizableHandle withHandle />
+            {!notebookCollapsed && <ResizableHandle withHandle />}
             
-            <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
-              <TasksNotesPanel />
+            <ResizablePanel 
+              defaultSize={30} 
+              minSize={notebookCollapsed ? 0 : 25} 
+              maxSize={notebookCollapsed ? 0 : 40}
+              collapsible={true}
+              collapsedSize={0}
+              onCollapse={() => setNotebookCollapsed(true)}
+              onExpand={() => setNotebookCollapsed(false)}
+            >
+              {!notebookCollapsed && <TasksNotesPanel onCollapse={() => setNotebookCollapsed(true)} />}
             </ResizablePanel>
           </ResizablePanelGroup>
+          
+          {sourcesCollapsed && (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setSourcesCollapsed(false)}
+              className="absolute left-2 top-4 z-50 h-8 w-8 bg-card shadow-md"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {notebookCollapsed && (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setNotebookCollapsed(false)}
+              className="absolute right-2 top-4 z-50 h-8 w-8 bg-card shadow-md"
+            >
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       )}
     </div>
