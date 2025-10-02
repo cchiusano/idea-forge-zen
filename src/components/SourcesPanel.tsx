@@ -240,14 +240,12 @@ export const SourcesPanel = ({ onCollapse }: SourcesPanelProps) => {
               Add
             </Button>
             {onCollapse && (
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
                 onClick={onCollapse}
-                className="h-10 w-10"
+                className="p-2 hover:bg-accent rounded-md transition-colors"
               >
                 <PanelLeftClose className="h-5 w-5" />
-              </Button>
+              </button>
             )}
           </div>
         </div>
