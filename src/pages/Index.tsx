@@ -8,7 +8,7 @@ import { ProjectSelector } from "@/components/ProjectSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, FileText, Sparkles, CheckSquare } from "lucide-react";
+import { LogOut, FileText, Sparkles, CheckSquare, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -59,8 +59,16 @@ const Index = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="outline"
+            onClick={() => navigate('/stocks')}
+            className="gap-2"
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden md:inline">Stock Analysis</span>
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
             className="rounded-full h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90"
           >
